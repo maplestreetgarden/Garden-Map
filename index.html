@@ -357,7 +357,7 @@ textarea.finp{resize:vertical;min-height:68px;line-height:1.5}
           <p>Upload your garden map<br>in Admin mode to get started</p>
         </div>
       </div>
-      <svg id="map-svg"></svg>
+      <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
       <div id="map-legend">
         <div class="li"><div class="ls" style="background:rgba(26,92,48,.08);border-color:rgba(26,92,48,.55)"></div>No Entries</div>
@@ -890,7 +890,7 @@ function renderZones(){
       if(item.archived)return false;
       return(S.logs[item.id]||[]).some(l=>logVisibleInSeason(l,item.type,S.activeSeason));
     });
-    const ptsStr=z.points.map(p=>`${p[0]}%,${p[1]}%`).join(' ');
+    const ptsStr=z.points.map(p=>`${p[0]},${p[1]}`).join(' ');
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','zg');
     const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
