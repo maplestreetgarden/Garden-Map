@@ -332,7 +332,6 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   #search-wrap.expanded #search-input{display:block;width:160px;}
   #search-wrap.expanded #search-icon-btn{display:none;}
   #admin-bar.show{display:flex;flex-wrap:wrap;padding:8px 14px;gap:6px;}
-  .ab{font-size:13px;padding:8px 14px;min-height:44px;display:flex;align-items:center;justify-content:center;}
   #admin-btn{font-size:12px;padding:6px 12px;}
   #sidebar{
     position:fixed;bottom:0;left:0;right:0;width:100%;
@@ -351,13 +350,22 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   .mbk{align-items:flex-end;padding:0}
   .frow{grid-template-columns:1fr}
   #zoom-controls{bottom:40px}
-  #app-title .title-full{display:none;}
-  #app-title .title-short{display:inline;}
+  #app-title .title-full{display:none!important;}
+  #app-title .title-short{display:inline!important;}
+  #topbar{height:auto;min-height:48px;padding:8px 12px;flex-wrap:nowrap;overflow:hidden;}
+  #app-title{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin-right:4px;}
+  #search-wrap{flex-shrink:0;}
+  #admin-bar.show .ab{font-size:12px;padding:7px 12px;min-height:40px;}
+  #zone-hd{padding:10px 12px 8px;}
+  #zone-name{font-size:15px;}
+  #detail-nav{flex-wrap:wrap;gap:5px;padding:8px 12px;}
+  #detail-adm-btns{flex-wrap:wrap;gap:4px;}
+  .ab{font-size:11px;padding:5px 10px;}
 }
 @media(min-width:768px){
   #sidebar{width:280px}
-  #app-title .title-full{display:inline;}
-  #app-title .title-short{display:none;}
+  #app-title .title-full{display:inline!important;}
+  #app-title .title-short{display:none!important;}
 }
 </style>
 </head>
@@ -367,7 +375,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   <div id="topbar">
     <span id="app-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><path d="M12 22v-7"/><path d="M9 9c0-3.5 6-3.5 6 0a4 4 0 01-4 7H9a4 4 0 01-4-4c0-2.5 2-4 4-3"/><path d="M15 9a4 4 0 014 4c0 2.5-2 4-4 3"/></svg>
-      <span class="title-full">Maple Street Community Garden</span><span class="title-short" style="display:none">MSCG</span>
+      <span class="title-full">Maple Street Community Garden</span><span class="title-short">MSCG</span>
     </span>
     <div id="season-scroll"></div>
     <div id="topbar-right">
@@ -385,8 +393,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     <span id="admin-bar-label">Admin</span>
     <button class="ab" id="ab-upload">Upload Map</button>
     <button class="ab" id="ab-history">History</button>
-    <button class="ab" id="ab-zones">Edit Zones</button>
-    <button class="ab d" id="ab-del-zone" style="display:none">Delete Zone</button>
+    <button class="ab" id="ab-zones">Add Zones</button>
     <button class="ab" id="ab-seasons">Manage Seasons</button>
     <button class="ab d" id="ab-pin">Reset PIN</button>
     <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
@@ -436,7 +443,6 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
             </div>
             <div id="zone-adm-btns">
               <button class="ab" id="zone-edit-btn">Edit</button>
-              <button class="ab d" id="zone-del-btn" style="display:none">Delete Zone</button>
             </div>
           </div>
           <div id="zone-desc"></div>
@@ -587,7 +593,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
       <div class="fg"><label class="flbl">Description</label><textarea class="finp" id="zm-desc" rows="2" placeholder="Brief description..."></textarea></div>
       <div class="fg"><label class="flbl">Zone Color</label><select class="finp" id="zm-color"><option value="gray">Gray (default)</option><option value="blue">Blue</option><option value="red">Red</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="orange">Orange</option><option value="purple">Purple</option><option value="pink">Pink</option></select></div>
     </div>
-    <div class="mft"><button class="btn-s" onclick="closeModal('zone-modal')">Cancel</button><button class="btn-p" onclick="saveZone()">Save Zone</button></div>
+    <div class="mft"><button class="btn-s" id="zm-delete-btn" style="color:var(--r700);border-color:#f0c0c0;margin-right:auto;display:none" onclick="deleteCurrentZone()">Delete Zone</button><button class="btn-s" onclick="closeModal('zone-modal')">Cancel</button><button class="btn-p" onclick="saveZone()">Save Zone</button></div>
   </div>
 </div>
 
@@ -856,7 +862,7 @@ function applyAdmin(){
     document.getElementById('d-archive-btn').style.display=isAdmin?'inline-flex':'none';
   }
   document.querySelectorAll('.ladm').forEach(el=>el.classList.toggle('show',isAdmin));
-  updateAdminZoneButtons();
+
   renderZones();
   if(selZone)renderItems();
   if(selItem)renderLogs();
@@ -864,13 +870,6 @@ function applyAdmin(){
 document.getElementById('ab-upload').onclick=()=>document.getElementById('map-file').click();
 document.getElementById('ab-history').onclick=()=>openHistoryModal();
 document.getElementById('ab-zones').onclick=()=>toggleZoneEdit();
-document.getElementById('ab-del-zone').onclick=()=>{
-  if(!selZone||!isAdmin)return;
-  const z=S.zones.find(z=>z.id===selZone);
-  if(!z)return;
-  if(!confirm(`Delete zone "${z.name}" and all its items and logs?`))return;
-  deleteZone(selZone);
-};
 document.getElementById('ab-seasons').onclick=()=>{renderSeasonsModal();openModal('seasons-modal');};
 document.getElementById('ab-pin').onclick=()=>{
   showPin('Reset PIN','Enter a new PIN.',p=>{
@@ -994,20 +993,13 @@ function renderHistoryList(){
 const mapSvg=document.getElementById('map-svg');
 const mapContent=document.getElementById('map-content');
 
-function updateAdminZoneButtons(){
-  const showDel=isAdmin&&editingZones&&!!selZone;
-  const btn=document.getElementById('ab-del-zone');
-  if(btn)btn.style.display=showDel?'inline-block':'none';
-  const delBtn=document.getElementById('zone-del-btn');
-  if(delBtn)delBtn.style.display=(isAdmin&&editingZones)?'inline-block':'none';
-}
 function toggleZoneEdit(){
   editingZones=!editingZones;
-  document.getElementById('ab-zones').textContent=editingZones?'Stop Editing Zones':'Edit Zones';
+  document.getElementById('ab-zones').textContent=editingZones?'Stop Adding':'Add Zones';
   document.getElementById('zone-hint').classList.toggle('show',editingZones);
   mapSvg.classList.toggle('editing',editingZones);
   drawPts=[];clearDrawPreview();
-  updateAdminZoneButtons();
+
   renderZones();
 }
 mapSvg.addEventListener('click',e=>{
@@ -1063,6 +1055,7 @@ function finishZoneDraw(){
   document.getElementById('zm-name').value='';
   document.getElementById('zm-type').value='';
   document.getElementById('zm-desc').value='';
+  document.getElementById('zm-delete-btn').style.display='none';
   document.getElementById('zone-modal-title').textContent='Name This Zone';
   window._pendingPts=pts;
   openModal('zone-modal');
@@ -1109,7 +1102,7 @@ function renderZones(){
     poly.onclick=()=>{
       if(editingZones){
         selZone=z.id;
-        updateAdminZoneButtons();
+      
         renderZones();
         return;
       }
@@ -1129,12 +1122,6 @@ function selectZone(id){
   desc.textContent=z.desc||'';desc.style.display=z.desc?'block':'none';
   document.getElementById('zone-adm-btns').style.display=isAdmin?'flex':'none';
   document.getElementById('zone-edit-btn').onclick=()=>editZone(id);
-  document.getElementById('zone-del-btn').onclick=()=>{
-    if(!selZone)return;
-    const z=S.zones.find(z=>z.id===selZone);
-    if(!confirm(`Delete zone "${z?.name}" and all its items and logs?`))return;
-    deleteZone(selZone);
-  };
   showPanel('p-zone');
   document.getElementById('detail-panel').style.display='none';
   document.getElementById('items-panel').style.display='flex';
@@ -1143,7 +1130,7 @@ function selectZone(id){
   document.getElementById('f-tag').value='';
   document.getElementById('f-from').value='';
   document.getElementById('f-to').value='';
-  updateAdminZoneButtons();
+
   renderFSeasons();updateFilterBadge();renderItems();renderZones();
 }
 function editZone(id){
@@ -1154,7 +1141,16 @@ function editZone(id){
   document.getElementById('zm-desc').value=z.desc||'';
   document.getElementById('zm-color').value=z.color||'gray';
   document.getElementById('zone-modal-title').textContent='Edit Zone';
+  document.getElementById('zm-delete-btn').style.display='inline-flex';
   openModal('zone-modal');
+}
+function deleteCurrentZone(){
+  if(!pendingZId)return;
+  const z=S.zones.find(z=>z.id===pendingZId);
+  if(!z)return;
+  if(!confirm(`Delete zone "${z.name}" and all its items and logs?`))return;
+  closeModal('zone-modal');
+  deleteZone(pendingZId);
 }
 function deleteZone(id){
   const z=S.zones.find(z=>z.id===id);
@@ -1163,7 +1159,7 @@ function deleteZone(id){
   (S.items[id]||[]).forEach(item=>delete S.logs[item.id]);
   delete S.items[id];
   if(selZone===id){selZone=null;selItem=null;showPanel('p-empty');}
-  save();updateAdminZoneButtons();renderZones();
+  save();renderZones();
 }
 
 // ── FILTERS ──
