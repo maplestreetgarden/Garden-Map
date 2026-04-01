@@ -73,9 +73,6 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .draw-dot{pointer-events:none}
 #zone-hint{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(26,61,38,.92);color:var(--w);font-size:12px;padding:6px 14px;border-radius:20px;pointer-events:none;white-space:nowrap;z-index:5}
 #zone-hint.show{display:block}
-#map-legend{position:absolute;bottom:10px;left:10px;display:flex;gap:9px;background:rgba(255,255,255,.88);border-radius:var(--rmd);padding:7px 13px;z-index:10}
-.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--n700)}
-.ls{width:12px;height:12px;border-radius:2px;border:2px solid;flex-shrink:0}
 
 /* ZOOM CONTROLS */
 #zoom-controls{position:absolute;bottom:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:10}
@@ -98,6 +95,10 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 /* SIDEBAR */
 #sidebar{width:280px;flex-shrink:0;display:flex;flex-direction:column;background:var(--w);border-left:1px solid var(--n100);overflow:hidden;transition:transform .25s;position:relative}
 #mob-handle{display:none}
+#sb-resize{position:absolute;left:0;top:0;bottom:0;width:20px;cursor:ew-resize;z-index:10;display:flex;align-items:center;justify-content:center;background:transparent;transition:background .15s;}
+#sb-resize:hover{background:rgba(26,92,48,.08);}
+#sb-resize span{font-size:10px;color:var(--n400);user-select:none;line-height:1;transition:color .15s;}
+#sb-resize:hover span{color:var(--g800);}
 .sb-panel{display:none;flex-direction:column;flex:1;overflow:hidden}
 .sb-panel.active{display:flex}
 
@@ -324,6 +325,11 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   #season-scroll{display:none}
   #search-input{width:110px}
   #sb-resize{display:none}
+  #search-wrap #search-input{display:none}
+  #search-icon-btn{display:flex;}
+  #search-wrap.expanded #search-input{display:block;width:160px;}
+  #search-wrap.expanded #search-icon-btn{display:none;}
+  #admin-btn{font-size:11px;padding:4px 8px;}
   #sidebar{
     position:fixed;bottom:0;left:0;right:0;width:100%;
     height:80vh;max-height:80vh;
@@ -337,7 +343,6 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   #mob-handle{display:flex;justify-content:center;padding:10px 0 6px;flex-shrink:0;cursor:grab;touch-action:none}
   #mob-handle-bar{width:36px;height:4px;border-radius:2px;background:var(--n300)}
   #map-area{height:100%}
-  #map-legend{bottom:36px}
   .mo{max-height:90vh;border-radius:16px 16px 0 0;align-self:flex-end;max-width:100%}
   .mbk{align-items:flex-end;padding:0}
   .frow{grid-template-columns:1fr}
@@ -359,6 +364,9 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     <div id="season-scroll"></div>
     <div id="topbar-right">
       <div id="search-wrap">
+        <button id="search-icon-btn" style="display:none;background:transparent;border:none;cursor:pointer;padding:4px;" onclick="expandSearch()">
+          <svg width="18" height="18" fill="none" viewBox="0 0 14 14"><circle cx="5.5" cy="5.5" r="3.5" stroke="white" stroke-width="1.4"/><path d="M8.5 8.5l3 3" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
         <svg class="srch-icon" fill="none" viewBox="0 0 14 14"><circle cx="5.5" cy="5.5" r="3.5" stroke="white" stroke-width="1.4"/><path d="M8.5 8.5l3 3" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
         <input id="search-input" placeholder="Search..." autocomplete="off">
       </div>
@@ -371,6 +379,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     <button class="ab" id="ab-upload">Upload Map</button>
     <button class="ab" id="ab-history">History</button>
     <button class="ab" id="ab-zones">Edit Zones</button>
+    <button class="ab d" id="ab-del-zone" style="display:none">Delete Zone</button>
     <button class="ab" id="ab-seasons">Manage Seasons</button>
     <button class="ab d" id="ab-pin">Reset PIN</button>
     <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
@@ -388,7 +397,6 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       </div>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
-      <div id="map-legend"></div>
       <div id="zoom-controls">
         <button id="zoom-in" title="Zoom in">+</button>
         <button id="zoom-reset" title="Reset zoom">⌖</button>
@@ -401,7 +409,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     </div>
 
     <div id="sidebar">
-      <div id="sb-resize" style="position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--n100);border-right:1px solid var(--n200);cursor:ew-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:10"><span style="font-size:9px;color:var(--n400);writing-mode:vertical-rl;letter-spacing:2px;user-select:none">⋮⋮</span></div>
+      <div id="sb-resize"><span>⠿</span></div>
       <div id="mob-handle"><div id="mob-handle-bar"></div></div>
       <div id="mob-season-row"></div>
 
@@ -839,7 +847,27 @@ function applyAdmin(){
     document.getElementById('d-archive-btn').style.display=isAdmin?'inline-flex':'none';
   }
   document.querySelectorAll('.ladm').forEach(el=>el.classList.toggle('show',isAdmin));
-  updateZoneDelBtn();
+  const isMobile=window.innerWidth<=767;
+  if(isMobile&&isAdmin){
+    document.getElementById('admin-bar').classList.remove('show');
+    let mobAdm=document.getElementById('mob-admin-panel');
+    if(!mobAdm){
+      mobAdm=document.createElement('div');
+      mobAdm.id='mob-admin-panel';
+      mobAdm.style.cssText='padding:10px 14px;background:var(--a50);border-top:1px solid var(--a200);flex-shrink:0;display:flex;flex-wrap:wrap;gap:6px;';
+      mobAdm.innerHTML=`<span style="font-size:11px;color:var(--a800);font-weight:500;width:100%">Admin</span>
+      <button class="ab" onclick="document.getElementById('map-file').click()">Upload Map</button>
+      <button class="ab" onclick="toggleZoneEdit()">Edit Zones</button>
+      <button class="ab" id="mob-del-zone" style="display:none" onclick="document.getElementById('ab-del-zone').click()">Delete Zone</button>
+      <button class="ab" onclick="document.getElementById('ab-seasons').click()">Manage Seasons</button>
+      <button class="ab d" onclick="document.getElementById('ab-pin').click()">Reset PIN</button>`;
+      document.getElementById('sidebar').appendChild(mobAdm);
+    }else{mobAdm.style.display='flex';}
+  }else if(isMobile&&!isAdmin){
+    const mobAdm=document.getElementById('mob-admin-panel');
+    if(mobAdm)mobAdm.style.display='none';
+  }
+  updateAdminZoneButtons();
   renderZones();
   if(selZone)renderItems();
   if(selItem)renderLogs();
@@ -847,6 +875,12 @@ function applyAdmin(){
 document.getElementById('ab-upload').onclick=()=>document.getElementById('map-file').click();
 document.getElementById('ab-history').onclick=()=>openHistoryModal();
 document.getElementById('ab-zones').onclick=()=>toggleZoneEdit();
+document.getElementById('ab-del-zone').onclick=()=>{
+  if(!selZone)return;
+  const z=S.zones.find(z=>z.id===selZone);
+  if(!confirm(`Delete zone "${z?.name}" and all its items and logs?`))return;
+  deleteZone(selZone);
+};
 document.getElementById('ab-seasons').onclick=()=>{renderSeasonsModal();openModal('seasons-modal');};
 document.getElementById('ab-pin').onclick=()=>{
   showPin('Reset PIN','Enter a new PIN.',p=>{
@@ -970,9 +1004,12 @@ function renderHistoryList(){
 const mapSvg=document.getElementById('map-svg');
 const mapContent=document.getElementById('map-content');
 
-function updateZoneDelBtn(){
-  const btn=document.getElementById('zone-del-btn');
-  if(btn)btn.style.display=(editingZones&&selZone&&isAdmin)?'inline-flex':'none';
+function updateAdminZoneButtons(){
+  const showDel=isAdmin&&editingZones&&!!selZone;
+  const btn=document.getElementById('ab-del-zone');
+  if(btn)btn.style.display=showDel?'inline-block':'none';
+  const delBtn=document.getElementById('zone-del-btn');
+  if(delBtn)delBtn.style.display=(isAdmin&&editingZones)?'inline-block':'none';
 }
 function toggleZoneEdit(){
   editingZones=!editingZones;
@@ -980,7 +1017,7 @@ function toggleZoneEdit(){
   document.getElementById('zone-hint').classList.toggle('show',editingZones);
   mapSvg.classList.toggle('editing',editingZones);
   drawPts=[];clearDrawPreview();
-  updateZoneDelBtn();
+  updateAdminZoneButtons();
   renderZones();
 }
 mapSvg.addEventListener('click',e=>{
@@ -1057,14 +1094,6 @@ function saveZone(){
   save();closeModal('zone-modal');renderZones();
   if(pendingZId&&selZone===pendingZId)selectZone(pendingZId);
 }
-function renderLegend(){
-  const leg=document.getElementById('map-legend');
-  if(!leg)return;
-  const seen={};
-  S.zones.forEach(z=>{const c=z.color||'gray';if(!seen[c])seen[c]=ZONE_COLORS[c];});
-  leg.innerHTML=Object.entries(seen).map(([name,c])=>`<div class="li"><div class="ls" style="background:${c.fill};border-color:${c.stroke}"></div>${name.charAt(0).toUpperCase()+name.slice(1)}</div>`).join('');
-  if(Object.keys(seen).length===0)leg.innerHTML='<div class="li"><div class="ls" style="background:rgba(120,120,120,.1);border-color:rgba(120,120,120,.45)"></div>No zones</div>';
-}
 function renderZones(){
   mapSvg.querySelectorAll('.zg').forEach(el=>el.remove());
   S.zones.forEach(z=>{
@@ -1089,7 +1118,6 @@ function renderZones(){
     g.appendChild(poly);
     mapSvg.appendChild(g);
   });
-  renderLegend();
 }
 function selectZone(id){
   selZone=id;selItem=null;
@@ -1101,7 +1129,12 @@ function selectZone(id){
   desc.textContent=z.desc||'';desc.style.display=z.desc?'block':'none';
   document.getElementById('zone-adm-btns').style.display=isAdmin?'flex':'none';
   document.getElementById('zone-edit-btn').onclick=()=>editZone(id);
-  document.getElementById('zone-del-btn').onclick=()=>deleteZone(id);
+  document.getElementById('zone-del-btn').onclick=()=>{
+    if(!selZone)return;
+    const z=S.zones.find(z=>z.id===selZone);
+    if(!confirm(`Delete zone "${z?.name}" and all its items and logs?`))return;
+    deleteZone(selZone);
+  };
   showPanel('p-zone');
   document.getElementById('detail-panel').style.display='none';
   document.getElementById('items-panel').style.display='flex';
@@ -1110,7 +1143,7 @@ function selectZone(id){
   document.getElementById('f-tag').value='';
   document.getElementById('f-from').value='';
   document.getElementById('f-to').value='';
-  updateZoneDelBtn();
+  updateAdminZoneButtons();
   renderFSeasons();updateFilterBadge();renderItems();renderZones();
 }
 function editZone(id){
@@ -1125,13 +1158,12 @@ function editZone(id){
 }
 function deleteZone(id){
   const z=S.zones.find(z=>z.id===id);
-  if(!confirm(`Delete zone "${z?.name}" and all its items?`))return;
   pushHistory(`Zone deleted: ${z?.name||id}`,id,null);
   S.zones=S.zones.filter(z=>z.id!==id);
   (S.items[id]||[]).forEach(item=>delete S.logs[item.id]);
   delete S.items[id];
   if(selZone===id){selZone=null;selItem=null;showPanel('p-empty');}
-  save();updateZoneDelBtn();renderZones();
+  save();updateAdminZoneButtons();renderZones();
 }
 
 // ── FILTERS ──
@@ -1608,6 +1640,15 @@ function getCFs(containerId){
 }
 
 // ── SEARCH ──
+function expandSearch(){
+  document.getElementById('search-wrap').classList.add('expanded');
+  document.getElementById('search-input').focus();
+}
+document.getElementById('search-input').addEventListener('blur',()=>{
+  if(!document.getElementById('search-input').value){
+    document.getElementById('search-wrap').classList.remove('expanded');
+  }
+});
 document.getElementById('search-input').oninput=e=>{
   const q=e.target.value.trim().toLowerCase();
   const sr=document.getElementById('search-results');
@@ -1695,7 +1736,7 @@ mapArea.addEventListener('touchmove',e=>{
 // ── SIDEBAR RESIZE ──
 let sbResizing=false,sbStartX=0,sbStartW=0;
 document.getElementById('sb-resize').addEventListener('mousedown',e=>{
-  sbResizing=true;sbStartX=e.clientX;sbStartW=document.getElementById('sidebar').offsetWidth;
+  sbResizing=true;sbStartX=e.clientX-e.offsetX;sbStartW=document.getElementById('sidebar').offsetWidth;
   document.body.style.cursor='ew-resize';e.preventDefault();
 });
 document.addEventListener('mousemove',e=>{
