@@ -38,9 +38,9 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #search-input::placeholder{color:rgba(255,255,255,.4)}
 #search-input:focus{outline:none;width:210px;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4)}
 .srch-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:14px;height:14px;pointer-events:none;opacity:.5}
-#admin-btn{font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28);background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .15s;white-space:nowrap}
-#admin-btn:hover{color:var(--w);border-color:rgba(255,255,255,.55)}
-#admin-btn.on{background:var(--a100);border-color:var(--a200);color:var(--a800)}
+#admin-btn{position:absolute;top:10px;left:10px;z-index:15;font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.4);background:rgba(26,61,38,.8);color:rgba(255,255,255,.9);cursor:pointer;transition:all .15s;white-space:nowrap;backdrop-filter:blur(4px);}
+#admin-btn:hover{background:rgba(26,61,38,.95);border-color:rgba(255,255,255,.7);}
+#admin-btn.on{background:var(--a100);border-color:var(--a200);color:var(--a800);}
 
 /* ADMIN BAR */
 #admin-bar{display:none;align-items:center;gap:7px;padding:7px 18px;background:var(--a50);border-bottom:1px solid var(--a200);flex-shrink:0;flex-wrap:wrap}
@@ -70,7 +70,9 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #map-empty{text-align:center;pointer-events:none}
 #map-empty p{font-size:13px;color:#4a6e4a;margin-top:8px}
 .draw-prev-poly{fill:rgba(26,92,48,.1);stroke:var(--g800);stroke-width:0.15;stroke-dasharray:5 3;pointer-events:none}
-.draw-dot{pointer-events:none}
+#draw-dots{position:absolute;inset:0;pointer-events:none;z-index:5;}
+.draw-dot-el{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--g800);transform:translate(-50%,-50%);transition:none;}
+.draw-dot-el.first-dot{width:8px;height:8px;border:2px solid white;background:var(--g800);}
 #zone-hint{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(26,61,38,.92);color:var(--w);font-size:12px;padding:6px 14px;border-radius:20px;pointer-events:none;white-space:nowrap;z-index:5}
 #zone-hint.show{display:block}
 
@@ -329,7 +331,9 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   #search-icon-btn{display:flex;}
   #search-wrap.expanded #search-input{display:block;width:160px;}
   #search-wrap.expanded #search-icon-btn{display:none;}
-  #admin-btn{font-size:11px;padding:4px 8px;}
+  #admin-bar.show{display:flex;flex-wrap:wrap;padding:8px 14px;gap:6px;}
+  .ab{font-size:13px;padding:8px 14px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+  #admin-btn{font-size:12px;padding:6px 12px;}
   #sidebar{
     position:fixed;bottom:0;left:0;right:0;width:100%;
     height:80vh;max-height:80vh;
@@ -347,9 +351,13 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   .mbk{align-items:flex-end;padding:0}
   .frow{grid-template-columns:1fr}
   #zoom-controls{bottom:40px}
+  #app-title .title-full{display:none;}
+  #app-title .title-short{display:inline;}
 }
 @media(min-width:768px){
   #sidebar{width:280px}
+  #app-title .title-full{display:inline;}
+  #app-title .title-short{display:none;}
 }
 </style>
 </head>
@@ -359,7 +367,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   <div id="topbar">
     <span id="app-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><path d="M12 22v-7"/><path d="M9 9c0-3.5 6-3.5 6 0a4 4 0 01-4 7H9a4 4 0 01-4-4c0-2.5 2-4 4-3"/><path d="M15 9a4 4 0 014 4c0 2.5-2 4-4 3"/></svg>
-      Maple Street Community Garden
+      <span class="title-full">Maple Street Community Garden</span><span class="title-short" style="display:none">MSCG</span>
     </span>
     <div id="season-scroll"></div>
     <div id="topbar-right">
@@ -370,7 +378,6 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <svg class="srch-icon" fill="none" viewBox="0 0 14 14"><circle cx="5.5" cy="5.5" r="3.5" stroke="white" stroke-width="1.4"/><path d="M8.5 8.5l3 3" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
         <input id="search-input" placeholder="Search..." autocomplete="off">
       </div>
-      <button id="admin-btn">Admin</button>
     </div>
   </div>
 
@@ -387,6 +394,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
 
   <div id="main">
     <div id="map-area">
+      <button id="admin-btn" aria-label="Admin">Admin</button>
       <div id="map-content">
         <div id="map-layer">
           <div id="map-empty">
@@ -397,6 +405,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       </div>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
+      <div id="draw-dots"></div>
       <div id="zoom-controls">
         <button id="zoom-in" title="Zoom in">+</button>
         <button id="zoom-reset" title="Reset zoom">⌖</button>
@@ -847,26 +856,6 @@ function applyAdmin(){
     document.getElementById('d-archive-btn').style.display=isAdmin?'inline-flex':'none';
   }
   document.querySelectorAll('.ladm').forEach(el=>el.classList.toggle('show',isAdmin));
-  const isMobile=window.innerWidth<=767;
-  if(isMobile&&isAdmin){
-    document.getElementById('admin-bar').classList.remove('show');
-    let mobAdm=document.getElementById('mob-admin-panel');
-    if(!mobAdm){
-      mobAdm=document.createElement('div');
-      mobAdm.id='mob-admin-panel';
-      mobAdm.style.cssText='padding:10px 14px;background:var(--a50);border-top:1px solid var(--a200);flex-shrink:0;display:flex;flex-wrap:wrap;gap:6px;';
-      mobAdm.innerHTML=`<span style="font-size:11px;color:var(--a800);font-weight:500;width:100%">Admin</span>
-      <button class="ab" onclick="document.getElementById('map-file').click()">Upload Map</button>
-      <button class="ab" onclick="toggleZoneEdit()">Edit Zones</button>
-      <button class="ab" id="mob-del-zone" style="display:none" onclick="document.getElementById('ab-del-zone').click()">Delete Zone</button>
-      <button class="ab" onclick="document.getElementById('ab-seasons').click()">Manage Seasons</button>
-      <button class="ab d" onclick="document.getElementById('ab-pin').click()">Reset PIN</button>`;
-      document.getElementById('sidebar').appendChild(mobAdm);
-    }else{mobAdm.style.display='flex';}
-  }else if(isMobile&&!isAdmin){
-    const mobAdm=document.getElementById('mob-admin-panel');
-    if(mobAdm)mobAdm.style.display='none';
-  }
   updateAdminZoneButtons();
   renderZones();
   if(selZone)renderItems();
@@ -876,9 +865,10 @@ document.getElementById('ab-upload').onclick=()=>document.getElementById('map-fi
 document.getElementById('ab-history').onclick=()=>openHistoryModal();
 document.getElementById('ab-zones').onclick=()=>toggleZoneEdit();
 document.getElementById('ab-del-zone').onclick=()=>{
-  if(!selZone)return;
+  if(!selZone||!isAdmin)return;
   const z=S.zones.find(z=>z.id===selZone);
-  if(!confirm(`Delete zone "${z?.name}" and all its items and logs?`))return;
+  if(!z)return;
+  if(!confirm(`Delete zone "${z.name}" and all its items and logs?`))return;
   deleteZone(selZone);
 };
 document.getElementById('ab-seasons').onclick=()=>{renderSeasonsModal();openModal('seasons-modal');};
@@ -1044,7 +1034,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&editingZones){drawPts=[];clearDrawPreview();}
 });
 function clearDrawPreview(){
-  mapSvg.querySelectorAll('.draw-prev-poly,.draw-dot').forEach(el=>el.remove());
+  mapSvg.querySelectorAll('.draw-prev-poly').forEach(el=>el.remove());
+  document.getElementById('draw-dots').innerHTML='';
 }
 function updateDrawPreview(mx,my){
   clearDrawPreview();
@@ -1054,14 +1045,15 @@ function updateDrawPreview(mx,my){
   poly.setAttribute('points',pts.map(p=>`${p[0]}%,${p[1]}%`).join(' '));
   poly.setAttribute('class','draw-prev-poly');
   mapSvg.appendChild(poly);
+  const mapRect=document.getElementById('map-area').getBoundingClientRect();
   drawPts.forEach((p,i)=>{
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',p[0]+'%');c.setAttribute('cy',p[1]+'%');
-    const dotR=(i===0?0.8:0.5)/(mapZoom||1);
-    c.setAttribute('r',dotR);
-    c.setAttribute('fill',i===0?'var(--g800)':'var(--g600)');
-    c.setAttribute('class','draw-dot');
-    mapSvg.appendChild(c);
+    const el=document.createElement('div');
+    el.className='draw-dot-el'+(i===0?' first-dot':'');
+    const x=(p[0]/100)*mapRect.width;
+    const y=(p[1]/100)*mapRect.height;
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    document.getElementById('draw-dots').appendChild(el);
   });
 }
 function finishZoneDraw(){
@@ -1114,7 +1106,15 @@ function renderZones(){
     poly.setAttribute('class',cls);
     poly.style.fill=hasEntries?zc.fill.replace('.1)','.18)'):zc.fill;
     poly.style.stroke=zc.stroke;
-    poly.onclick=()=>{if(!editingZones)selectZone(z.id);};
+    poly.onclick=()=>{
+      if(editingZones){
+        selZone=z.id;
+        updateAdminZoneButtons();
+        renderZones();
+        return;
+      }
+      selectZone(z.id);
+    };
     g.appendChild(poly);
     mapSvg.appendChild(g);
   });
