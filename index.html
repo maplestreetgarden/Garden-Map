@@ -55,7 +55,7 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #main{display:flex;flex:1;overflow:hidden;position:relative}
 
 /* MAP */
-#map-area{flex:1;position:relative;overflow:auto;background:#c5d9b3}
+#map-area{flex:1;position:relative;overflow:hidden;background:#c5d9b3}
 #map-content{position:absolute;inset:0;transform-origin:center center}
 #map-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 #map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain}
@@ -355,7 +355,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
   .finp{font-size:16px;}
   .fg{gap:3px;}
   .frow{grid-template-columns:1fr}
-  #zoom-controls{bottom:40px}
+  #zoom-controls{display:none}
   #app-title .title-full{display:none!important;}
   #app-title .title-short{display:inline!important;}
   #topbar{height:auto;min-height:48px;padding:8px 12px;flex-wrap:nowrap;overflow:hidden;}
