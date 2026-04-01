@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Maple Street Community Garden</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
@@ -60,12 +60,12 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain}
 #map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #map-svg.editing{pointer-events:all;cursor:crosshair}
-.zp{fill:rgba(100,100,100,.08);stroke:rgba(100,100,100,.45);stroke-width:0.3;cursor:pointer;pointer-events:all;transition:fill .12s}
-.zp:hover{fill:rgba(100,100,100,.18)}
-.zp.zlogged{fill:rgba(26,92,48,.12);stroke:rgba(26,92,48,.7)}
+.zp{fill:rgba(120,120,120,.08);stroke:rgba(120,120,120,.4);stroke-width:0.3;cursor:pointer;pointer-events:all;transition:fill .12s}
+.zp:hover{fill:rgba(120,120,120,.18)}
+.zp.zlogged{fill:rgba(26,92,48,.12);stroke:rgba(26,92,48,.7);stroke-width:0.3}
 .zp.zlogged:hover{fill:rgba(26,92,48,.22)}
 .zp.zsel{stroke-width:0.4;stroke:var(--g800)}
-.zlbl{font-family:'DM Serif Display',serif;font-size:3px;font-weight:400;fill:rgba(255,255,255,0.85);pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,0.25);stroke-width:0.4px;text-anchor:middle;dominant-baseline:middle}
+.zp.zsel.zlogged{stroke:var(--g700)}
 #map-empty{text-align:center;pointer-events:none}
 #map-empty p{font-size:13px;color:#4a6e4a;margin-top:8px}
 .draw-prev-poly{fill:rgba(26,92,48,.1);stroke:var(--g800);stroke-width:0.3;stroke-dasharray:5 3;pointer-events:none}
@@ -95,7 +95,8 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .src-snip{font-size:12px;color:var(--n500);margin-top:3px}
 
 /* SIDEBAR */
-#sidebar{width:280px;flex-shrink:0;display:flex;flex-direction:column;background:var(--w);border-left:1px solid var(--n100);overflow:hidden;transition:transform .25s}
+#sidebar{width:280px;flex-shrink:0;display:flex;flex-direction:column;background:var(--w);border-left:1px solid var(--n100);overflow:hidden;transition:transform .25s;position:relative}
+#mob-handle{display:none}
 .sb-panel{display:none;flex-direction:column;flex:1;overflow:hidden}
 .sb-panel.active{display:flex}
 
@@ -319,19 +320,27 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
 
 /* RESPONSIVE */
 @media(max-width:767px){
-  html,body{overflow:hidden}
-  #app{padding-bottom:56px}
-  #mob-tabbar{display:flex}
   #season-scroll{display:none}
-  #mob-season-row{display:flex}
-  #sidebar{position:fixed;inset:0;width:100%;z-index:50;border-left:none;transform:translateX(100%)}
-  #sidebar.mob-open{transform:translateX(0)}
-  #map-legend{bottom:auto;top:12px}
-  .mo{max-height:90vh;border-radius:var(--rlg) var(--rlg) 0 0;align-self:flex-end;max-width:100%}
+  #search-input{width:110px}
+  #sb-resize{display:none}
+  #sidebar{
+    position:fixed;bottom:0;left:0;right:0;width:100%;
+    height:80vh;max-height:80vh;
+    border-left:none;border-top:1px solid var(--n100);
+    border-radius:16px 16px 0 0;
+    transform:translateY(calc(100% - 28px));
+    z-index:25;box-shadow:0 -4px 20px rgba(0,0,0,.12);
+    transition:transform .3s cubic-bezier(.32,.72,0,1);
+  }
+  #sidebar.sb-open{transform:translateY(0)}
+  #mob-handle{display:flex;justify-content:center;padding:10px 0 6px;flex-shrink:0;cursor:grab;touch-action:none}
+  #mob-handle-bar{width:36px;height:4px;border-radius:2px;background:var(--n300)}
+  #map-area{height:100%}
+  #map-legend{bottom:36px}
+  .mo{max-height:90vh;border-radius:16px 16px 0 0;align-self:flex-end;max-width:100%}
   .mbk{align-items:flex-end;padding:0}
   .frow{grid-template-columns:1fr}
-  button{min-height:44px}
-  .mcl,.cfrm{min-height:unset}
+  #zoom-controls{bottom:40px}
 }
 @media(min-width:768px){
   #sidebar{width:280px}
@@ -379,7 +388,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
       </div>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
       <div id="map-legend">
-        <div class="li"><div class="ls" style="background:rgba(100,100,100,.08);border-color:rgba(100,100,100,.45)"></div>No Entries</div>
+        <div class="li"><div class="ls" style="background:rgba(120,120,120,.08);border-color:rgba(120,120,120,.4)"></div>No Entries</div>
         <div class="li"><div class="ls" style="background:rgba(26,92,48,.12);border-color:rgba(26,92,48,.7)"></div>Has Entries</div>
       </div>
       <div id="zoom-controls">
@@ -394,6 +403,8 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     </div>
 
     <div id="sidebar">
+      <div id="sb-resize" style="position:absolute;left:0;top:0;bottom:0;width:5px;cursor:ew-resize;z-index:10;background:transparent;"></div>
+      <div id="mob-handle"><div id="mob-handle-bar"></div></div>
       <div id="mob-season-row"></div>
 
       <div id="p-empty" class="sb-panel active">
@@ -465,7 +476,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
                 <div id="id-cover-wrap">
                   <div id="id-cover" onclick="triggerCoverUpload()" title="Update cover photo"></div>
                   <div id="id-cover-hint">Tap to update</div>
-                  <input type="file" id="cover-inp" accept="image/*" style="display:none">
+                  <input type="file" id="cover-inp" accept="image/*,.heic,.heif" style="display:none">
                 </div>
                 <div id="id-fields"></div>
               </div>
@@ -606,7 +617,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <div style="display:flex;align-items:center;gap:10px">
           <div id="im-cover-prev">📷</div>
           <label class="btn-s" for="im-cover-inp" style="font-size:12px;padding:5px 12px;cursor:pointer">Choose Photo</label>
-          <input type="file" id="im-cover-inp" accept="image/*" style="display:none">
+          <input type="file" id="im-cover-inp" accept="image/*,.heic,.heif" style="display:none">
         </div>
       </div>
       <div class="fg"><label class="flbl">Notes</label><textarea class="finp" id="im-notes" rows="2" placeholder="General notes about this item..."></textarea></div>
@@ -626,6 +637,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     <div class="mhd"><h3 id="log-modal-title">New Log Entry</h3><button class="mcl" onclick="closeModal('log-modal')">×</button></div>
     <div class="mbd">
       <div class="fg"><label class="flbl">Title / Summary</label><input class="finp" id="lm-title" placeholder="Brief summary of this log..."></div>
+      <div class="fg"><label class="flbl">Season <span style="color:var(--r700)">*</span></label><select class="finp" id="lm-season" required></select></div>
       <div class="fg"><label class="flbl">Notes</label><textarea class="finp" id="lm-notes" rows="3" placeholder="Detailed observations, tasks done..."></textarea></div>
       <div class="fg">
         <label class="flbl">Custom Fields <span style="font-size:11px;color:var(--n400);text-transform:none;letter-spacing:0">(Label + Value)</span></label>
@@ -647,7 +659,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <label class="flbl">Photos</label>
         <div class="photos-wrap" id="lm-photos">
           <label class="phadd" for="lm-photo-inp">+</label>
-          <input type="file" id="lm-photo-inp" accept="image/*" multiple style="display:none">
+          <input type="file" id="lm-photo-inp" accept="image/*,.heic,.heif" multiple style="display:none">
         </div>
       </div>
     </div>
@@ -727,8 +739,8 @@ let editingZones=false,drawPts=[],pendingZId=null;
 let pItemType='plant',pCondition='',pItemEditId=null;
 let pTags=[],pPhotos=[],pCover=null;
 let pinCb=null;
-let zoom=1,panX=0,panY=0;
-let dragging=false,dragStartX=0,dragStartY=0,panStartX=0,panStartY=0;
+let editingLogId=null;
+let mapZoom=1,panX=0,panY=0,isPanning=false,panStartX=0,panStartY=0;
 
 function save(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
 function pushHistory(action,zoneId,itemId){
@@ -1008,7 +1020,8 @@ function updateDrawPreview(mx,my){
   drawPts.forEach((p,i)=>{
     const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
     c.setAttribute('cx',p[0]+'%');c.setAttribute('cy',p[1]+'%');
-    c.setAttribute('r',i===0?'1.2':'0.7');
+    const dotR=(i===0?1.2:0.7)/mapZoom;
+    c.setAttribute('r',dotR);
     c.setAttribute('fill',i===0?'var(--g800)':'var(--g600)');
     c.setAttribute('class','draw-dot');
     mapSvg.appendChild(c);
@@ -1062,14 +1075,6 @@ function renderZones(){
     poly.setAttribute('class',cls);
     poly.onclick=()=>{if(!editingZones)selectZone(z.id);};
     g.appendChild(poly);
-    const cx=z.points.reduce((s,p)=>s+p[0],0)/z.points.length;
-    const cy=z.points.reduce((s,p)=>s+p[1],0)/z.points.length;
-    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    lbl.setAttribute('x',cx+'%');lbl.setAttribute('y',cy+'%');
-    lbl.setAttribute('text-anchor','middle');lbl.setAttribute('dominant-baseline','middle');
-    lbl.setAttribute('class','zlbl');
-    lbl.textContent=z.name;
-    g.appendChild(lbl);
     mapSvg.appendChild(g);
   });
 }
@@ -1394,6 +1399,7 @@ function renderLogs(){
     const tagsHTML=(l.tags||[]).map(t=>`<span class="ltag">${t}</span>`).join('');
     const photosHTML=(l.photos||[]).map(p=>`<img class="lphoto" src="${p}" onclick="window.open(this.src,'_blank')">`).join('');
     const lockLabel=l.locked?'Unlock':'Lock';
+    const canEdit=(l.addedBy===currentUser)||isAdmin;
     card.innerHTML=`
       <div class="lhd">
         <div><div class="ltitle">${l.title||'Log Entry'}</div><div class="lts">Logged: ${ts}</div></div>
@@ -1407,9 +1413,10 @@ function renderLogs(){
       </div>
       <div class="lfoot">
         <span class="lfoot-ts">${l.addedBy||'Unknown'}</span>
-        <div class="ladm${isAdmin?' show':''}">
-          <button class="lab lk" onclick="toggleLogLock('${l.id}')">${lockLabel}</button>
-          <button class="lab del" onclick="deleteLog('${l.id}')">Delete</button>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${canEdit?`<button class="lab" onclick="editLog('${l.id}')">Edit</button>`:''}
+          ${isAdmin?`<button class="lab lk" onclick="toggleLogLock('${l.id}')">${lockLabel}</button>`:''}
+          ${isAdmin?`<button class="lab del" onclick="deleteLog('${l.id}')">Delete</button>`:''}
         </div>
       </div>`;
     list.appendChild(card);
@@ -1436,6 +1443,7 @@ function deleteLog(id){
 document.getElementById('new-log-btn').onclick=()=>{
   const item=(S.items[selZone]||[]).find(i=>i.id===selItem);
   if(item&&item.locked){alert('This item is locked. Admin must unlock it before adding logs.');return;}
+  editingLogId=null;
   pTags=[];pPhotos=[];
   document.getElementById('lm-title').value='';
   document.getElementById('lm-notes').value='';
@@ -1443,8 +1451,12 @@ document.getElementById('new-log-btn').onclick=()=>{
   document.getElementById('lm-df').innerHTML='';
   document.querySelectorAll('#lm-tags .tpill').forEach(el=>el.remove());
   document.getElementById('lm-tinp').value='';
+  const sel=document.getElementById('lm-season');
+  sel.innerHTML='<option value="">— Select season —</option>';
+  S.seasons.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  if(S.activeSeason!=='All')sel.value=S.activeSeason;
   const pw=document.getElementById('lm-photos');
-  pw.innerHTML='<label class="phadd" for="lm-photo-inp">+</label><input type="file" id="lm-photo-inp" accept="image/*" multiple style="display:none">';
+  pw.innerHTML='<label class="phadd" for="lm-photo-inp">+</label><input type="file" id="lm-photo-inp" accept="image/*,.heic,.heif" multiple style="display:none">';
   document.getElementById('lm-photo-inp').onchange=handlePhotoInput;
   document.getElementById('log-modal-title').textContent='New Log Entry';
   openModal('log-modal');
@@ -1485,23 +1497,76 @@ function saveLog(){
   if(!selItem)return;
   const item=(S.items[selZone]||[]).find(i=>i.id===selItem);
   if(item&&item.locked){alert('This item is locked.');return;}
-  const season=S.activeSeason==='All'?(S.seasons[S.seasons.length-1]||'General'):S.activeSeason;
+  const season=document.getElementById('lm-season').value;
+  if(!season){alert('Please select a season.');return;}
   const title=document.getElementById('lm-title').value.trim();
-  const log={
-    id:'l'+Date.now(),ts:Date.now(),season,locked:false,
-    addedBy:currentUser||'Unknown',
-    title,
-    notes:document.getElementById('lm-notes').value.trim(),
-    fields:getCFs('lm-cf'),
-    dateFields:getCFs('lm-df',true),
-    tags:[...pTags],
-    photos:[...pPhotos]
-  };
-  if(!S.logs[selItem])S.logs[selItem]=[];
-  S.logs[selItem].push(log);
-  pushHistory(`Log added: ${title||'Log'}`,selZone,selItem);
+  if(editingLogId){
+    const log=(S.logs[selItem]||[]).find(l=>l.id===editingLogId);
+    if(log){
+      log.title=title;
+      log.notes=document.getElementById('lm-notes').value.trim();
+      log.season=season;
+      log.fields=getCFs('lm-cf');
+      log.dateFields=getCFs('lm-df');
+      log.tags=[...pTags];
+      log.photos=[...pPhotos];
+    }
+    pushHistory(`Log edited: ${title||'Log'}`,selZone,selItem);
+    editingLogId=null;
+  }else{
+    const log={
+      id:'l'+Date.now(),ts:Date.now(),season,locked:false,
+      addedBy:currentUser||'Unknown',
+      title,
+      notes:document.getElementById('lm-notes').value.trim(),
+      fields:getCFs('lm-cf'),
+      dateFields:getCFs('lm-df'),
+      tags:[...pTags],
+      photos:[...pPhotos]
+    };
+    if(!S.logs[selItem])S.logs[selItem]=[];
+    S.logs[selItem].push(log);
+    pushHistory(`Log added: ${title||'Log'}`,selZone,selItem);
+  }
   save();
   closeModal('log-modal');renderLogs();renderItems();renderZones();
+}
+
+function editLog(id){
+  const log=(S.logs[selItem]||[]).find(l=>l.id===id);if(!log)return;
+  editingLogId=id;
+  pTags=[...(log.tags||[])];pPhotos=[...(log.photos||[])];
+  document.getElementById('lm-title').value=log.title||'';
+  document.getElementById('lm-notes').value=log.notes||'';
+  const sel=document.getElementById('lm-season');
+  sel.innerHTML='<option value="">— Select season —</option>';
+  S.seasons.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  sel.value=log.season||'';
+  document.getElementById('lm-cf').innerHTML='';
+  (log.fields||[]).forEach(f=>{
+    const row=document.createElement('div');row.className='cfrow';
+    row.innerHTML=`<input class="cfk" value="${f.k}" placeholder="Label"><input class="cfv" value="${f.v}" placeholder="Value"><button class="cfrm" onclick="this.parentElement.remove()">×</button>`;
+    document.getElementById('lm-cf').appendChild(row);
+  });
+  document.getElementById('lm-df').innerHTML='';
+  (log.dateFields||[]).forEach(f=>{
+    const row=document.createElement('div');row.className='cfrow';
+    row.innerHTML=`<input class="cfk" value="${f.k}" placeholder="Label"><input class="cfv" type="date" value="${f.v}"><button class="cfrm" onclick="this.parentElement.remove()">×</button>`;
+    document.getElementById('lm-df').appendChild(row);
+  });
+  document.querySelectorAll('#lm-tags .tpill').forEach(el=>el.remove());
+  pTags.forEach(t=>{
+    const pill=document.createElement('span');pill.className='tpill';
+    pill.innerHTML=`${t}<span class="tpx" onclick="removeTag(this,'${t}')">×</span>`;
+    document.getElementById('lm-tags').insertBefore(pill,document.getElementById('lm-tinp'));
+  });
+  document.getElementById('lm-tinp').value='';
+  const pw=document.getElementById('lm-photos');
+  pw.innerHTML='<label class="phadd" for="lm-photo-inp">+</label><input type="file" id="lm-photo-inp" accept="image/*,.heic,.heif" multiple style="display:none">';
+  document.getElementById('lm-photo-inp').onchange=handlePhotoInput;
+  pPhotos.forEach(p=>{const img=document.createElement('img');img.className='phthumb';img.src=p;pw.insertBefore(img,pw.querySelector('label'));});
+  document.getElementById('log-modal-title').textContent='Edit Log Entry';
+  openModal('log-modal');
 }
 
 // Custom fields helpers
@@ -1558,52 +1623,91 @@ document.getElementById('search-input').addEventListener('keydown',e=>{
 
 // ── ZOOM & PAN ──
 function applyTransform(){
-  mapContent.style.transform=`scale(${zoom}) translate(${panX}px,${panY}px)`;
+  mapContent.style.transform=`scale(${mapZoom}) translate(${panX}px,${panY}px)`;
 }
-document.getElementById('zoom-in').onclick=()=>{if(editingZones)return;zoom=Math.min(4,zoom+0.2);applyTransform();};
-document.getElementById('zoom-out').onclick=()=>{if(editingZones)return;zoom=Math.max(0.5,zoom-0.2);applyTransform();};
-document.getElementById('zoom-reset').onclick=()=>{zoom=1;panX=0;panY=0;applyTransform();};
-document.getElementById('map-area').addEventListener('wheel',e=>{
-  if(editingZones)return;
-  e.preventDefault();
-  zoom*=e.deltaY>0?0.9:1.1;
-  zoom=Math.max(0.5,Math.min(4,zoom));
-  applyTransform();
+document.getElementById('zoom-in').onclick=()=>{mapZoom=Math.min(4,mapZoom+0.2);applyTransform();}
+document.getElementById('zoom-out').onclick=()=>{mapZoom=Math.max(0.5,mapZoom-0.2);applyTransform();}
+document.getElementById('zoom-reset').onclick=()=>{mapZoom=1;panX=0;panY=0;applyTransform();}
+const mapArea=document.getElementById('map-area');
+mapArea.addEventListener('wheel',e=>{
+  if(e.ctrlKey){
+    e.preventDefault();
+    const delta=e.deltaY>0?-0.1:0.1;
+    mapZoom=Math.max(0.5,Math.min(4,mapZoom+delta));
+    applyTransform();
+  }
 },{passive:false});
-document.getElementById('map-area').addEventListener('mousedown',e=>{
-  if(editingZones||e.button!==0)return;
-  dragging=true;dragStartX=e.clientX;dragStartY=e.clientY;panStartX=panX;panStartY=panY;
-  e.preventDefault();
+mapArea.addEventListener('mousedown',e=>{
+  if(editingZones)return;
+  if(e.target.closest('#zoom-controls'))return;
+  isPanning=true;panStartX=e.clientX-panX*mapZoom;panStartY=e.clientY-panY*mapZoom;
+  mapArea.style.cursor='grabbing';
 });
 document.addEventListener('mousemove',e=>{
-  if(!dragging)return;
-  panX=panStartX+(e.clientX-dragStartX)/zoom;
-  panY=panStartY+(e.clientY-dragStartY)/zoom;
-  applyTransform();
+  if(!isPanning)return;
+  panX=(e.clientX-panStartX)/mapZoom;panY=(e.clientY-panStartY)/mapZoom;applyTransform();
 });
-document.addEventListener('mouseup',()=>{dragging=false;});
+document.addEventListener('mouseup',()=>{isPanning=false;mapArea.style.cursor='';});
 let lastTouchDist=0,lastTouchX=0,lastTouchY=0;
-document.getElementById('map-area').addEventListener('touchstart',e=>{
+mapArea.addEventListener('touchstart',e=>{
   if(editingZones)return;
   if(e.touches.length===2){
     lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
   }else if(e.touches.length===1){
-    lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;
+    lastTouchX=e.touches[0].clientX-panX*mapZoom;lastTouchY=e.touches[0].clientY-panY*mapZoom;
   }
 },{passive:true});
-document.getElementById('map-area').addEventListener('touchmove',e=>{
+mapArea.addEventListener('touchmove',e=>{
   if(editingZones)return;
   if(e.touches.length===2){
+    e.preventDefault();
     const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    if(lastTouchDist){zoom*=dist/lastTouchDist;zoom=Math.max(0.5,Math.min(4,zoom));}
+    mapZoom=Math.max(0.5,Math.min(4,mapZoom*(dist/lastTouchDist)));
     lastTouchDist=dist;applyTransform();
   }else if(e.touches.length===1){
-    panX+=(e.touches[0].clientX-lastTouchX)/zoom;
-    panY+=(e.touches[0].clientY-lastTouchY)/zoom;
-    lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;
-    applyTransform();
+    panX=(e.touches[0].clientX-lastTouchX)/mapZoom;panY=(e.touches[0].clientY-lastTouchY)/mapZoom;applyTransform();
   }
+},{passive:false});
+
+// ── SIDEBAR RESIZE ──
+let sbResizing=false,sbStartX=0,sbStartW=0;
+document.getElementById('sb-resize').addEventListener('mousedown',e=>{
+  sbResizing=true;sbStartX=e.clientX;sbStartW=document.getElementById('sidebar').offsetWidth;
+  document.body.style.cursor='ew-resize';e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!sbResizing)return;
+  const newW=Math.max(220,Math.min(600,sbStartW-(e.clientX-sbStartX)));
+  document.getElementById('sidebar').style.width=newW+'px';
+});
+document.addEventListener('mouseup',()=>{if(sbResizing){sbResizing=false;document.body.style.cursor='';}});
+
+// ── MOBILE BOTTOM SHEET ──
+let sheetStartY=0,sheetStartT=0,sheetDragging=false;
+const mobHandle=document.getElementById('mob-handle');
+const sidebar=document.getElementById('sidebar');
+mobHandle.addEventListener('touchstart',e=>{
+  sheetDragging=true;
+  sheetStartY=e.touches[0].clientY;
+  sheetStartT=sidebar.getBoundingClientRect().top;
+  sidebar.style.transition='none';
 },{passive:true});
+mobHandle.addEventListener('touchmove',e=>{
+  if(!sheetDragging)return;
+  const dy=e.touches[0].clientY-sheetStartY;
+  const vh=window.innerHeight;
+  const newTop=Math.max(vh*0.2,Math.min(vh-28,sheetStartT+dy));
+  sidebar.style.transform=`translateY(${newTop-(vh-sidebar.offsetHeight)}px)`;
+},{passive:true});
+mobHandle.addEventListener('touchend',()=>{
+  sheetDragging=false;
+  sidebar.style.transition='transform .3s cubic-bezier(.32,.72,0,1)';
+  const rect=sidebar.getBoundingClientRect();
+  const vh=window.innerHeight;
+  if(rect.top<vh*0.5){sidebar.classList.add('sb-open');}
+  else{sidebar.classList.remove('sb-open');}
+  sidebar.style.transform='';
+});
 
 // ── INIT ──
 renderSeasonBar();
