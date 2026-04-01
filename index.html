@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>Maple Street Community Garden</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
 :root{
   --g900:#1a3d26;--g800:#1a5c30;--g700:#237a3f;--g600:#2d9b52;
@@ -68,16 +69,16 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .zp.zsel.zlogged{stroke:var(--g700)}
 #map-empty{text-align:center;pointer-events:none}
 #map-empty p{font-size:13px;color:#4a6e4a;margin-top:8px}
-.draw-prev-poly{fill:rgba(26,92,48,.1);stroke:var(--g800);stroke-width:0.3;stroke-dasharray:5 3;pointer-events:none}
+.draw-prev-poly{fill:rgba(26,92,48,.1);stroke:var(--g800);stroke-width:0.15;stroke-dasharray:5 3;pointer-events:none}
 .draw-dot{pointer-events:none}
 #zone-hint{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(26,61,38,.92);color:var(--w);font-size:12px;padding:6px 14px;border-radius:20px;pointer-events:none;white-space:nowrap;z-index:5}
 #zone-hint.show{display:block}
-#map-legend{position:absolute;bottom:12px;left:12px;display:flex;gap:9px;background:rgba(255,255,255,.88);border-radius:var(--rmd);padding:7px 13px;z-index:5}
+#map-legend{position:absolute;bottom:10px;left:10px;display:flex;gap:9px;background:rgba(255,255,255,.88);border-radius:var(--rmd);padding:7px 13px;z-index:10}
 .li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--n700)}
 .ls{width:12px;height:12px;border-radius:2px;border:2px solid;flex-shrink:0}
 
 /* ZOOM CONTROLS */
-#zoom-controls{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;z-index:10}
+#zoom-controls{position:absolute;bottom:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:10}
 #zoom-controls button{width:36px;height:36px;border-radius:var(--rsm);border:1px solid var(--n200);background:rgba(255,255,255,.92);color:var(--n700);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);line-height:1}
 #zoom-controls button:hover{background:var(--w);color:var(--g800)}
 
@@ -387,10 +388,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
         <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       </div>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
-      <div id="map-legend">
-        <div class="li"><div class="ls" style="background:rgba(120,120,120,.08);border-color:rgba(120,120,120,.4)"></div>No Entries</div>
-        <div class="li"><div class="ls" style="background:rgba(26,92,48,.12);border-color:rgba(26,92,48,.7)"></div>Has Entries</div>
-      </div>
+      <div id="map-legend"></div>
       <div id="zoom-controls">
         <button id="zoom-in" title="Zoom in">+</button>
         <button id="zoom-reset" title="Reset zoom">⌖</button>
@@ -403,7 +401,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
     </div>
 
     <div id="sidebar">
-      <div id="sb-resize" style="position:absolute;left:0;top:0;bottom:0;width:5px;cursor:ew-resize;z-index:10;background:transparent;"></div>
+      <div id="sb-resize" style="position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--n100);border-right:1px solid var(--n200);cursor:ew-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:10"><span style="font-size:9px;color:var(--n400);writing-mode:vertical-rl;letter-spacing:2px;user-select:none">⋮⋮</span></div>
       <div id="mob-handle"><div id="mob-handle-bar"></div></div>
       <div id="mob-season-row"></div>
 
@@ -570,6 +568,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
       <div class="fg"><label class="flbl">Zone Name</label><input class="finp" id="zm-name" placeholder="e.g. Bed A, Compost Corner"></div>
       <div class="fg"><label class="flbl">Type</label><input class="finp" id="zm-type" placeholder="e.g. Raised Bed, Structure, Compost"></div>
       <div class="fg"><label class="flbl">Description</label><textarea class="finp" id="zm-desc" rows="2" placeholder="Brief description..."></textarea></div>
+      <div class="fg"><label class="flbl">Zone Color</label><select class="finp" id="zm-color"><option value="gray">Gray (default)</option><option value="blue">Blue</option><option value="red">Red</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="orange">Orange</option><option value="purple">Purple</option><option value="pink">Pink</option></select></div>
     </div>
     <div class="mft"><button class="btn-s" onclick="closeModal('zone-modal')">Cancel</button><button class="btn-p" onclick="saveZone()">Save Zone</button></div>
   </div>
@@ -689,6 +688,7 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.5}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 const SK='gtv3';
+const ZONE_COLORS={gray:{fill:'rgba(120,120,120,.1)',stroke:'rgba(120,120,120,.45)',hover:'rgba(120,120,120,.2)'},blue:{fill:'rgba(37,99,235,.1)',stroke:'rgba(37,99,235,.5)',hover:'rgba(37,99,235,.2)'},red:{fill:'rgba(185,28,28,.1)',stroke:'rgba(185,28,28,.5)',hover:'rgba(185,28,28,.2)'},green:{fill:'rgba(26,92,48,.12)',stroke:'rgba(26,92,48,.7)',hover:'rgba(26,92,48,.22)'},yellow:{fill:'rgba(202,138,4,.1)',stroke:'rgba(202,138,4,.5)',hover:'rgba(202,138,4,.2)'},orange:{fill:'rgba(194,65,12,.1)',stroke:'rgba(194,65,12,.5)',hover:'rgba(194,65,12,.2)'},purple:{fill:'rgba(109,40,217,.1)',stroke:'rgba(109,40,217,.5)',hover:'rgba(109,40,217,.2)'},pink:{fill:'rgba(190,24,93,.1)',stroke:'rgba(190,24,93,.5)',hover:'rgba(190,24,93,.2)'}};
 let S={zones:[],items:{},logs:{},seasons:['Spring 2025','Summer 2025','Fall 2025','Spring 2026'],activeSeason:'All',pin:null,history:[]};
 try{const d=localStorage.getItem(SK);if(d)S=Object.assign({zones:[],items:{},logs:{},seasons:[],activeSeason:'All',pin:null,history:[]},JSON.parse(d));}catch(e){}
 if(!S.history)S.history=[];
@@ -991,7 +991,7 @@ mapSvg.addEventListener('click',e=>{
   if(drawPts.length>=3){
     const fp=drawPts[0];
     const dist=Math.sqrt((x-fp[0])**2+(y-fp[1])**2);
-    if(dist<2.5){finishZoneDraw();return;}
+    if(dist<3.5/(mapZoom||1)){finishZoneDraw();return;}
   }
   drawPts.push([x,y]);
   updateDrawPreview(null,null);
@@ -1020,7 +1020,7 @@ function updateDrawPreview(mx,my){
   drawPts.forEach((p,i)=>{
     const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
     c.setAttribute('cx',p[0]+'%');c.setAttribute('cy',p[1]+'%');
-    const dotR=(i===0?1.2:0.7)/mapZoom;
+    const dotR=(i===0?0.8:0.5)/(mapZoom||1);
     c.setAttribute('r',dotR);
     c.setAttribute('fill',i===0?'var(--g800)':'var(--g600)');
     c.setAttribute('class','draw-dot');
@@ -1043,18 +1043,27 @@ function saveZone(){
   if(!name)return;
   const type=document.getElementById('zm-type').value.trim();
   const desc=document.getElementById('zm-desc').value.trim();
+  const color=document.getElementById('zm-color').value;
   if(pendingZId){
     const z=S.zones.find(z=>z.id===pendingZId);
-    if(z){z.name=name;z.type=type;z.desc=desc;}
+    if(z){z.name=name;z.type=type;z.desc=desc;z.color=color;}
     pushHistory(`Zone edited: ${name}`,pendingZId,null);
   }else{
     const id='z'+Date.now();
-    S.zones.push({id,name,type,desc,points:window._pendingPts||[]});
+    S.zones.push({id,name,type,desc,color,points:window._pendingPts||[]});
     S.items[id]=[];
     pushHistory(`Zone created: ${name}`,id,null);
   }
   save();closeModal('zone-modal');renderZones();
   if(pendingZId&&selZone===pendingZId)selectZone(pendingZId);
+}
+function renderLegend(){
+  const leg=document.getElementById('map-legend');
+  if(!leg)return;
+  const seen={};
+  S.zones.forEach(z=>{const c=z.color||'gray';if(!seen[c])seen[c]=ZONE_COLORS[c];});
+  leg.innerHTML=Object.entries(seen).map(([name,c])=>`<div class="li"><div class="ls" style="background:${c.fill};border-color:${c.stroke}"></div>${name.charAt(0).toUpperCase()+name.slice(1)}</div>`).join('');
+  if(Object.keys(seen).length===0)leg.innerHTML='<div class="li"><div class="ls" style="background:rgba(120,120,120,.1);border-color:rgba(120,120,120,.45)"></div>No zones</div>';
 }
 function renderZones(){
   mapSvg.querySelectorAll('.zg').forEach(el=>el.remove());
@@ -1064,6 +1073,7 @@ function renderZones(){
       if(item.archived)return false;
       return(S.logs[item.id]||[]).some(l=>logVisibleInSeason(l,item.type,S.activeSeason));
     });
+    const zc=ZONE_COLORS[z.color||'gray'];
     const ptsStr=z.points.map(p=>`${p[0]},${p[1]}`).join(' ');
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','zg');
@@ -1073,10 +1083,13 @@ function renderZones(){
     if(hasEntries)cls+=' zlogged';
     if(selZone===z.id)cls+=' zsel';
     poly.setAttribute('class',cls);
+    poly.style.fill=hasEntries?zc.fill.replace('.1)','.18)'):zc.fill;
+    poly.style.stroke=zc.stroke;
     poly.onclick=()=>{if(!editingZones)selectZone(z.id);};
     g.appendChild(poly);
     mapSvg.appendChild(g);
   });
+  renderLegend();
 }
 function selectZone(id){
   selZone=id;selItem=null;
@@ -1106,6 +1119,7 @@ function editZone(id){
   document.getElementById('zm-name').value=z.name;
   document.getElementById('zm-type').value=z.type||'';
   document.getElementById('zm-desc').value=z.desc||'';
+  document.getElementById('zm-color').value=z.color||'gray';
   document.getElementById('zone-modal-title').textContent='Edit Zone';
   openModal('zone-modal');
 }
@@ -1206,9 +1220,7 @@ function selCondition(c){
 }
 document.getElementById('im-cover-inp').onchange=e=>{
   const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{pCover=ev.target.result;document.getElementById('im-cover-prev').innerHTML=`<img src="${ev.target.result}" style="width:58px;height:58px;border-radius:var(--rmd);object-fit:cover">`;};
-  r.readAsDataURL(file);
+  toBase64(file).then(result=>{pCover=result;document.getElementById('im-cover-prev').innerHTML=`<img src="${result}" style="width:58px;height:58px;border-radius:var(--rmd);object-fit:cover">`;});
 };
 function saveItem(){
   if(!selZone)return;
@@ -1366,12 +1378,10 @@ function showItemsList(){
 function triggerCoverUpload(){document.getElementById('cover-inp').click();}
 document.getElementById('cover-inp').onchange=e=>{
   const file=e.target.files[0];if(!file||!selItem)return;
-  const r=new FileReader();
-  r.onload=ev=>{
+  toBase64(file).then(result=>{
     const item=(S.items[selZone]||[]).find(i=>i.id===selItem);if(!item)return;
-    item.cover=ev.target.result;save();openItem(selItem);
-  };
-  r.readAsDataURL(file);
+    item.cover=result;save();openItem(selItem);
+  });
 };
 
 // ── LOGS ──
@@ -1461,15 +1471,28 @@ document.getElementById('new-log-btn').onclick=()=>{
   document.getElementById('log-modal-title').textContent='New Log Entry';
   openModal('log-modal');
 };
+async function toBase64(file){
+  let f=file;
+  if(file.name&&file.name.toLowerCase().match(/\.(heic|heif)$/)){
+    try{
+      const blob=await heic2any({blob:file,toType:'image/jpeg',quality:0.8});
+      f=Array.isArray(blob)?blob[0]:blob;
+    }catch(e){console.warn('HEIC convert failed',e);}
+  }
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=ev=>res(ev.target.result);
+    r.onerror=rej;
+    r.readAsDataURL(f);
+  });
+}
 function handlePhotoInput(e){
   Array.from(e.target.files).forEach(file=>{
-    const r=new FileReader();
-    r.onload=ev=>{
-      pPhotos.push(ev.target.result);
-      const img=document.createElement('img');img.className='phthumb';img.src=ev.target.result;
+    toBase64(file).then(result=>{
+      pPhotos.push(result);
+      const img=document.createElement('img');img.className='phthumb';img.src=result;
       document.getElementById('lm-photos').insertBefore(img,document.querySelector('#lm-photos label'));
-    };
-    r.readAsDataURL(file);
+    });
   });
 }
 document.getElementById('lm-tinp').addEventListener('keydown',e=>{
@@ -1701,12 +1724,7 @@ mobHandle.addEventListener('touchmove',e=>{
 },{passive:true});
 mobHandle.addEventListener('touchend',()=>{
   sheetDragging=false;
-  sidebar.style.transition='transform .3s cubic-bezier(.32,.72,0,1)';
-  const rect=sidebar.getBoundingClientRect();
-  const vh=window.innerHeight;
-  if(rect.top<vh*0.5){sidebar.classList.add('sb-open');}
-  else{sidebar.classList.remove('sb-open');}
-  sidebar.style.transform='';
+  sidebar.style.transition='none';
 });
 
 // ── INIT ──
