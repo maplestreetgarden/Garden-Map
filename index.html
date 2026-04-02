@@ -787,7 +787,15 @@ async function loadFromSupabase(){
       sb.from('seasons').select('*').order('sort_order'),
       sb.from('app_config').select('*')
     ]);
-    S.zones=zones.data||[];
+    S.zones=(zones.data||[]).map(z=>({
+      id:z.id,
+      name:z.name,
+      type:z.type,
+      desc:z.description,
+      description:z.description,
+      color:z.color||'gray',
+      points:z.points||[]
+    }));
     S.seasons=(seasons.data||[]).map(s=>s.name);
     S.items={};
     S.zones.forEach(z=>{S.items[z.id]=[];});
@@ -812,7 +820,16 @@ async function loadFromSupabase(){
 }
 
 async function saveZoneToSupabase(zone){
-  await sb.from('zones').upsert({id:zone.id,name:zone.name,type:zone.type,description:zone.desc,color:zone.color||'gray',points:zone.points});
+  const{data,error}=await sb.from('zones').upsert({
+    id:zone.id,
+    name:zone.name,
+    type:zone.type||null,
+    description:zone.desc||zone.description||null,
+    color:zone.color||'gray',
+    points:zone.points
+  });
+  if(error)console.error('saveZoneToSupabase error',error);
+  return{data,error};
 }
 async function deleteZoneFromSupabase(zoneId){
   await sb.from('zones').delete().eq('id',zoneId);
