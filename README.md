@@ -1,5 +1,3 @@
-# Garden-Map
-
 # Maple Street Community Garden Tracker
 
 A web app for tracking plants, objects, and activity across the Maple Street Community Garden. Built as a single HTML file, hosted on GitHub Pages, with a Supabase backend for shared data and photo storage.
