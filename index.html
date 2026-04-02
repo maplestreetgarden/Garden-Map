@@ -1154,8 +1154,14 @@ function toggleZoneEdit(){
 mapSvg.addEventListener('click',e=>{
   if(!editingZones)return;
   const areaRect=document.getElementById('map-area').getBoundingClientRect();
-  const x=+((e.clientX-areaRect.left)/areaRect.width*100).toFixed(3);
-  const y=+((e.clientY-areaRect.top)/areaRect.height*100).toFixed(3);
+  const rawX=e.clientX-areaRect.left;
+  const rawY=e.clientY-areaRect.top;
+  const mapCx=areaRect.width/2;
+  const mapCy=areaRect.height/2;
+  const baseX=(rawX-mapCx)/mapZoom-panX+mapCx;
+  const baseY=(rawY-mapCy)/mapZoom-panY+mapCy;
+  const x=+((baseX/areaRect.width)*100).toFixed(3);
+  const y=+((baseY/areaRect.height)*100).toFixed(3);
   const cx=Math.max(0,Math.min(100,x));
   const cy=Math.max(0,Math.min(100,y));
   if(drawPts.length>=3){
@@ -1182,11 +1188,17 @@ function updateDrawPreview(){
   document.getElementById('draw-dots').innerHTML='';
   if(!drawPts.length)return;
   const areaRect=document.getElementById('map-area').getBoundingClientRect();
+  const mapCx=areaRect.width/2;
+  const mapCy=areaRect.height/2;
   drawPts.forEach((p,i)=>{
     const el=document.createElement('div');
     el.className='draw-dot-el'+(i===0?' first-dot':'');
-    el.style.left=(p[0]/100)*areaRect.width+'px';
-    el.style.top=(p[1]/100)*areaRect.height+'px';
+    const baseX=(p[0]/100)*areaRect.width;
+    const baseY=(p[1]/100)*areaRect.height;
+    const screenX=(baseX-mapCx+panX)*mapZoom+mapCx;
+    const screenY=(baseY-mapCy+panY)*mapZoom+mapCy;
+    el.style.left=screenX+'px';
+    el.style.top=screenY+'px';
     document.getElementById('draw-dots').appendChild(el);
   });
   if(drawPts.length>1){
@@ -1275,6 +1287,10 @@ function selectZone(id){
   const desc=document.getElementById('zone-desc');
   desc.textContent=z.desc||'';desc.style.display=z.desc?'block':'none';
   document.getElementById('zone-adm-btns').style.display=isAdmin?'flex':'none';
+  if(isAdmin){
+    document.getElementById('zone-move-btn').style.display='inline-flex';
+    document.getElementById('zone-reshape-btn').style.display='inline-flex';
+  }
   document.getElementById('zone-edit-btn').onclick=()=>editZone(id);
   showPanel('p-zone');
   document.getElementById('detail-panel').style.display='none';
@@ -1312,7 +1328,7 @@ async function deleteZone(id){
   S.zones=S.zones.filter(z=>z.id!==id);
   (S.items[id]||[]).forEach(item=>delete S.logs[item.id]);
   delete S.items[id];
-  if(selZone===id){selZone=null;selItem=null;showPanel('p-empty');}
+  if(selZone===id){selZone=null;selItem=null;showPanel('p-empty');document.getElementById('zone-move-btn').style.display='none';document.getElementById('zone-reshape-btn').style.display='none';}
   await deleteZoneFromSupabase(id);
   renderZones();
 }
@@ -1857,7 +1873,12 @@ document.getElementById('search-input').addEventListener('keydown',e=>{
 
 // ── ZOOM & PAN ──
 function applyTransform(){
-  mapContent.style.transform=`scale(${mapZoom}) translate(${panX}px,${panY}px)`;
+  const t=`scale(${mapZoom}) translate(${panX}px,${panY}px)`;
+  mapContent.style.transform=t;
+  const svg=document.getElementById('map-svg');
+  if(svg)svg.style.transform=t;
+  if(zoneEditMode==='reshape')renderVertexHandles();
+  if(editingZones&&drawPts.length)updateDrawPreview();
 }
 document.getElementById('zoom-in').onclick=()=>{mapZoom=Math.min(4,mapZoom+0.2);applyTransform();}
 document.getElementById('zoom-out').onclick=()=>{mapZoom=Math.max(0.5,mapZoom-0.2);applyTransform();}
@@ -1964,11 +1985,17 @@ function renderVertexHandles(){
   if(!selZone)return;
   const z=S.zones.find(z=>z.id===selZone);if(!z)return;
   const areaRect=document.getElementById('map-area').getBoundingClientRect();
+  const mapCx=areaRect.width/2;
+  const mapCy=areaRect.height/2;
   z.points.forEach((p,i)=>{
     const handle=document.createElement('div');
     handle.className='vertex-handle';
-    handle.style.left=(p[0]/100*areaRect.width)+'px';
-    handle.style.top=(p[1]/100*areaRect.height)+'px';
+    const baseX=(p[0]/100)*areaRect.width;
+    const baseY=(p[1]/100)*areaRect.height;
+    const screenX=(baseX-mapCx+panX)*mapZoom+mapCx;
+    const screenY=(baseY-mapCy+panY)*mapZoom+mapCy;
+    handle.style.left=screenX+'px';
+    handle.style.top=screenY+'px';
     handle.addEventListener('mousedown',e=>{activeVertexIndex=i;e.stopPropagation();e.preventDefault();});
     handle.addEventListener('touchstart',e=>{activeVertexIndex=i;e.stopPropagation();},{passive:true});
     container.appendChild(handle);
