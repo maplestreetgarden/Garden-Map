@@ -6,6 +6,7 @@
 <title>Maple Street Community Garden</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --g900:#1a3d26;--g800:#1a5c30;--g700:#237a3f;--g600:#2d9b52;
@@ -742,51 +743,13 @@ select.finp{min-height:48px;}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-const SK='gtv3';
+const SUPABASE_URL='https://najzmglbgzfbmnpdtluj.supabase.co';
+const SUPABASE_KEY='sb_publishable_010X64lS2aD8dAT59RB-ng_njnT5CmS';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ZONE_COLORS={gray:{fill:'rgba(120,120,120,.1)',stroke:'rgba(120,120,120,.45)',hover:'rgba(120,120,120,.2)'},blue:{fill:'rgba(37,99,235,.1)',stroke:'rgba(37,99,235,.5)',hover:'rgba(37,99,235,.2)'},red:{fill:'rgba(185,28,28,.1)',stroke:'rgba(185,28,28,.5)',hover:'rgba(185,28,28,.2)'},green:{fill:'rgba(26,92,48,.12)',stroke:'rgba(26,92,48,.7)',hover:'rgba(26,92,48,.22)'},yellow:{fill:'rgba(202,138,4,.1)',stroke:'rgba(202,138,4,.5)',hover:'rgba(202,138,4,.2)'},orange:{fill:'rgba(194,65,12,.1)',stroke:'rgba(194,65,12,.5)',hover:'rgba(194,65,12,.2)'},purple:{fill:'rgba(109,40,217,.1)',stroke:'rgba(109,40,217,.5)',hover:'rgba(109,40,217,.2)'},pink:{fill:'rgba(190,24,93,.1)',stroke:'rgba(190,24,93,.5)',hover:'rgba(190,24,93,.2)'}};
-let S={zones:[],items:{},logs:{},seasons:['Spring 2025','Summer 2025','Fall 2025','Spring 2026'],activeSeason:'All',pin:null,history:[]};
-try{const d=localStorage.getItem(SK);if(d)S=Object.assign({zones:[],items:{},logs:{},seasons:[],activeSeason:'All',pin:null,history:[]},JSON.parse(d));}catch(e){}
-if(!S.history)S.history=[];
+let S={zones:[],items:{},logs:{},seasons:[],activeSeason:'All',pin:null,history:[]};
 
-// Demo data seed
-if(!S.zones.length){
-  S.zones=[
-    {id:'z1',name:'Bed A',type:'Raised Bed',desc:'South-facing, 3×6m. Well-draining soil.',points:[[8,12],[38,12],[38,55],[8,55]]},
-    {id:'z2',name:'Compost',type:'Compost',desc:'Three-bay composting system.',points:[[42,12],[65,12],[65,42],[42,42]]},
-    {id:'z3',name:'Shed',type:'Structure',desc:'Main tool and equipment storage.',points:[[68,12],[92,12],[92,42],[68,42]]},
-  ];
-  S.items={
-    z1:[
-      {id:'i1',type:'plant',crop:'Tomato',variety:'Roma',sow:'2025-03-15',harvest:'2025-08-01',removal:'2025-10-31',notes:'Planted in south-facing corner.',customFields:[{k:'Spacing',v:'45cm'}],cover:null,locked:false,archived:false,addedBy:'Admin'},
-      {id:'i2',type:'plant',crop:'Kale',variety:'Curly',sow:'2026-03-01',harvest:'2026-07-01',removal:'',notes:'',customFields:[],cover:null,locked:false,archived:false,addedBy:'Admin'},
-    ],
-    z2:[],
-    z3:[
-      {id:'i3',type:'object',name:'Lawnmower',objtype:'Tool',condition:'worn',notes:'Blade needs sharpening.',customFields:[{k:'Serial No.',v:'LM-2021-003'}],cover:null,locked:false,archived:false,addedBy:'Admin'},
-    ],
-  };
-  S.logs={
-    i1:[
-      {id:'l1',ts:Date.now()-86400000*20,title:'First germination check',notes:'4 of 5 seeds germinated. Looking healthy.',fields:[{k:'Height',v:'8cm'}],dateFields:[{k:'Next Check',v:'2025-04-10'}],tags:['growth','spring'],photos:[],season:'Spring 2025',locked:false,addedBy:'Admin'},
-      {id:'l2',ts:Date.now()-86400000*5,title:'Liquid feed applied',notes:'Applied Tomorite. Minor yellowing on one leaf.',fields:[{k:'Feed Used',v:'Tomorite 20ml/L'}],dateFields:[{k:'Next Feed',v:'2026-04-14'}],tags:['feeding'],photos:[],season:'Spring 2026',locked:false,addedBy:'Admin'},
-    ],
-    i2:[],
-    i3:[
-      {id:'l3',ts:Date.now()-86400000*10,title:'Annual service',notes:'Blades sharpened, oil changed.',fields:[{k:'Serviced By',v:'Alex'}],dateFields:[{k:'Next Service',v:'2027-04-01'}],tags:['maintenance'],photos:[],season:'Spring 2026',locked:true,addedBy:'Alex'},
-    ],
-  };
-  save();
-}
-
-// Auto-archive plants past removal date
-Object.values(S.items).forEach(arr=>(arr||[]).forEach(item=>{
-  if(item.type==='plant'&&item.removal&&!item.archived){
-    if(new Date(item.removal)<new Date())item.archived=true;
-  }
-}));
-save();
-
-let currentUser=localStorage.getItem('gt_username')||'';
+let currentUser='';
 let isAdmin=false,selZone=null,selItem=null;
 let sortNewest=true,filterOpen=false;
 let fSeason='All',fType='',fTag='',fFrom='',fTo='';
@@ -797,10 +760,96 @@ let pinCb=null;
 let editingLogId=null;
 let mapZoom=1,panX=0,panY=0,isPanning=false,panStartX=0,panStartY=0;
 
-function save(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
 function pushHistory(action,zoneId,itemId){
   S.history.push({ts:Date.now(),user:currentUser||'Unknown',action,zoneId:zoneId||null,itemId:itemId||null});
-  save();
+}
+
+// ── SUPABASE DATA FUNCTIONS ──
+async function loadFromSupabase(){
+  try{
+    const [zones,items,logs,seasons,config]=await Promise.all([
+      sb.from('zones').select('*'),
+      sb.from('items').select('*'),
+      sb.from('logs').select('*'),
+      sb.from('seasons').select('*').order('sort_order'),
+      sb.from('app_config').select('*')
+    ]);
+    S.zones=zones.data||[];
+    S.seasons=(seasons.data||[]).map(s=>s.name);
+    S.items={};
+    S.zones.forEach(z=>{S.items[z.id]=[];});
+    (items.data||[]).forEach(item=>{
+      const i={id:item.id,type:item.type,crop:item.crop,variety:item.variety,name:item.name,objtype:item.objtype,condition:item.condition,sow:item.sow_date,harvest:item.harvest_date,removal:item.removal_date,notes:item.notes,cover:item.cover_url,customFields:item.custom_fields||[],locked:item.locked,archived:item.archived,addedBy:item.added_by,zoneId:item.zone_id};
+      if(!S.items[item.zone_id])S.items[item.zone_id]=[];
+      S.items[item.zone_id].push(i);
+    });
+    S.logs={};
+    (logs.data||[]).forEach(log=>{
+      const l={id:log.id,title:log.title,notes:log.notes,season:log.season,tags:log.tags||[],fields:log.fields||[],dateFields:log.date_fields||[],photos:log.photos||[],addedBy:log.added_by,locked:log.locked,ts:new Date(log.ts).getTime()};
+      if(!S.logs[log.item_id])S.logs[log.item_id]=[];
+      S.logs[log.item_id].push(l);
+    });
+    (config.data||[]).forEach(c=>{
+      if(c.key==='pin')S.pin=c.value;
+      if(c.key==='activeSeason')S.activeSeason=c.value;
+      if(c.key==='mapUrl')S.mapUrl=c.value;
+    });
+    if(S.mapUrl)showMapFromUrl(S.mapUrl);
+  }catch(e){console.error('Failed to load from Supabase',e);}
+}
+
+async function saveZoneToSupabase(zone){
+  await sb.from('zones').upsert({id:zone.id,name:zone.name,type:zone.type,description:zone.desc,color:zone.color||'gray',points:zone.points});
+}
+async function deleteZoneFromSupabase(zoneId){
+  await sb.from('zones').delete().eq('id',zoneId);
+}
+async function saveItemToSupabase(item,zoneId){
+  await sb.from('items').upsert({id:item.id,zone_id:zoneId,type:item.type,crop:item.crop||null,variety:item.variety||null,name:item.name||null,objtype:item.objtype||null,condition:item.condition||null,sow_date:item.sow||null,harvest_date:item.harvest||null,removal_date:item.removal||null,notes:item.notes||null,cover_url:item.cover||null,custom_fields:item.customFields||[],locked:item.locked||false,archived:item.archived||false,added_by:item.addedBy||currentUser});
+}
+async function deleteItemFromSupabase(itemId){
+  await sb.from('items').delete().eq('id',itemId);
+}
+async function saveLogToSupabase(log,itemId){
+  await sb.from('logs').upsert({id:log.id,item_id:itemId,title:log.title||null,notes:log.notes||null,season:log.season||null,tags:log.tags||[],fields:log.fields||[],date_fields:log.dateFields||[],photos:log.photos||[],added_by:log.addedBy||currentUser,locked:log.locked||false,ts:new Date(log.ts).toISOString()});
+}
+async function deleteLogFromSupabase(logId){
+  await sb.from('logs').delete().eq('id',logId);
+}
+async function saveSeasonsToSupabase(){
+  await sb.from('seasons').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  await sb.from('seasons').insert(S.seasons.map((name,i)=>({name,sort_order:i})));
+}
+async function saveConfigToSupabase(key,value){
+  await sb.from('app_config').upsert({key,value});
+}
+async function uploadMapToSupabase(file){
+  const ext=file.name.split('.').pop();
+  const path=`map/garden-map.${ext}`;
+  const{data,error}=await sb.storage.from('garden-assets').upload(path,file,{upsert:true});
+  if(error){console.error('Map upload failed',error);return null;}
+  const{data:urlData}=sb.storage.from('garden-assets').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+async function uploadPhotoToSupabase(file,prefix='photo'){
+  const ext=file.name.split('.').pop().replace(/heic|heif/i,'jpg');
+  const path=`${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  let uploadFile=file;
+  if(file.name.toLowerCase().match(/\.(heic|heif)$/)){
+    try{const blob=await heic2any({blob:file,toType:'image/jpeg',quality:0.8});uploadFile=Array.isArray(blob)?blob[0]:blob;}catch(e){console.warn('HEIC convert failed',e);}
+  }
+  const{data,error}=await sb.storage.from('garden-assets').upload(path,uploadFile,{upsert:true});
+  if(error){console.error('Photo upload failed',error);return null;}
+  const{data:urlData}=sb.storage.from('garden-assets').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+function showMapFromUrl(url){
+  document.getElementById('map-empty').style.display='none';
+  document.getElementById('map-layer').querySelectorAll('canvas,img').forEach(el=>el.remove());
+  const img=document.createElement('img');
+  img.src=url;img.style.cssText='max-width:100%;max-height:100%;display:block';
+  document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
+  renderZones();
 }
 
 // ── MODAL / PANEL HELPERS ──
@@ -874,7 +923,7 @@ function triggerAdminAccess(){
   }else if(!S.pin){
     showPin('Set Admin PIN','Choose a PIN to protect admin features.',p=>{
       if(p.length<4){setPinErr('PIN must be at least 4 characters.');return false;}
-      S.pin=p;save();isAdmin=true;closeModal('pin-modal');applyAdmin();
+      S.pin=p;saveConfigToSupabase('pin',S.pin);isAdmin=true;closeModal('pin-modal');applyAdmin();
     });
   }else{
     showPin('Enter Admin PIN','Enter your PIN to unlock admin features.',p=>{
@@ -928,27 +977,16 @@ document.getElementById('ab-seasons').onclick=()=>{renderSeasonsModal();openModa
 document.getElementById('ab-pin').onclick=()=>{
   showPin('Reset PIN','Enter a new PIN.',p=>{
     if(p.length<4){setPinErr('PIN must be at least 4 characters.');return false;}
-    S.pin=p;save();closeModal('pin-modal');
+    S.pin=p;saveConfigToSupabase('pin',S.pin);closeModal('pin-modal');
   });
 };
 document.getElementById('map-file').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  document.getElementById('map-empty').style.display='none';
-  document.getElementById('map-layer').querySelectorAll('canvas,img').forEach(el=>el.remove());
-  if(file.type==='application/pdf'){
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const pdf=await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
-    const page=await pdf.getPage(1);
-    const vp=page.getViewport({scale:1.5});
-    const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
-    document.getElementById('map-layer').insertBefore(c,document.getElementById('map-layer').firstChild);
-    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
-  }else{
-    const img=document.createElement('img');img.src=URL.createObjectURL(file);
-    img.style.cssText='max-width:100%;max-height:100%;display:block';
-    document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
-  }
-  renderZones();
+  const url=await uploadMapToSupabase(file);
+  if(!url)return;
+  S.mapUrl=url;
+  await saveConfigToSupabase('mapUrl',url);
+  showMapFromUrl(url);
 };
 
 // ── PIN ──
@@ -973,7 +1011,7 @@ function renderSeasonBar(){
       const c=document.createElement('span');
       c.className='s-chip'+(S.activeSeason===s?' act':'');
       c.textContent=s;
-      c.onclick=()=>{S.activeSeason=s;save();renderSeasonBar();renderFSeasons();if(selZone)renderItems();if(selItem)renderLogs();renderZones();};
+      c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();renderFSeasons();if(selZone)renderItems();if(selItem)renderLogs();renderZones();};
       container.appendChild(c);
     });
   });
@@ -1016,16 +1054,19 @@ function populateSeasonDropdown(existingSeason){
     sel.value=S.seasons[S.seasons.length-1]||'';
   }
 }
-function addSeason(){
+async function addSeason(){
   const inp=document.getElementById('new-season-inp');
   const name=inp.value.trim();
   if(!name||S.seasons.includes(name))return;
-  S.seasons.push(name);save();inp.value='';
+  S.seasons.push(name);inp.value='';
+  await saveSeasonsToSupabase();
   renderSeasonsModal();renderSeasonBar();renderFSeasons();populateSeasonDropdown();
 }
-function deleteSeason(i){
+async function deleteSeason(i){
   if(!confirm(`Remove season "${S.seasons[i]}"?`))return;
-  S.seasons.splice(i,1);save();renderSeasonsModal();renderSeasonBar();renderFSeasons();populateSeasonDropdown();
+  S.seasons.splice(i,1);
+  await saveSeasonsToSupabase();
+  renderSeasonsModal();renderSeasonBar();renderFSeasons();populateSeasonDropdown();
 }
 
 // ── HISTORY ──
@@ -1134,23 +1175,26 @@ function finishZoneDraw(){
   window._pendingPts=pts;
   openModal('zone-modal');
 }
-function saveZone(){
+async function saveZone(){
   const name=document.getElementById('zm-name').value.trim();
   if(!name)return;
   const type=document.getElementById('zm-type').value.trim();
   const desc=document.getElementById('zm-desc').value.trim();
   const color=document.getElementById('zm-color').value;
+  let zone;
   if(pendingZId){
-    const z=S.zones.find(z=>z.id===pendingZId);
-    if(z){z.name=name;z.type=type;z.desc=desc;z.color=color;}
+    zone=S.zones.find(z=>z.id===pendingZId);
+    if(zone){zone.name=name;zone.type=type;zone.desc=desc;zone.color=color;}
     pushHistory(`Zone edited: ${name}`,pendingZId,null);
   }else{
     const id='z'+Date.now();
-    S.zones.push({id,name,type,desc,color,points:window._pendingPts||[]});
+    zone={id,name,type,desc,color,points:window._pendingPts||[]};
+    S.zones.push(zone);
     S.items[id]=[];
     pushHistory(`Zone created: ${name}`,id,null);
   }
-  save();closeModal('zone-modal');renderZones();
+  await saveZoneToSupabase(zone);
+  closeModal('zone-modal');renderZones();
   if(pendingZId&&selZone===pendingZId)selectZone(pendingZId);
 }
 function renderZones(){
@@ -1226,14 +1270,15 @@ function deleteCurrentZone(){
   closeModal('zone-modal');
   deleteZone(pendingZId);
 }
-function deleteZone(id){
+async function deleteZone(id){
   const z=S.zones.find(z=>z.id===id);
   pushHistory(`Zone deleted: ${z?.name||id}`,id,null);
   S.zones=S.zones.filter(z=>z.id!==id);
   (S.items[id]||[]).forEach(item=>delete S.logs[item.id]);
   delete S.items[id];
   if(selZone===id){selZone=null;selItem=null;showPanel('p-empty');}
-  save();renderZones();
+  await deleteZoneFromSupabase(id);
+  renderZones();
 }
 
 // ── FILTERS ──
@@ -1320,11 +1365,14 @@ function selCondition(c){
   document.querySelectorAll('.copt').forEach(el=>el.classList.remove('sg','sw','sb'));
   document.querySelector(`.copt[data-c="${c}"]`).classList.add({good:'sg',worn:'sw',broken:'sb'}[c]);
 }
-document.getElementById('im-cover-inp').onchange=e=>{
+document.getElementById('im-cover-inp').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  toBase64(file).then(result=>{pCover=result;document.getElementById('im-cover-prev').innerHTML=`<img src="${result}" style="width:58px;height:58px;border-radius:var(--rmd);object-fit:cover">`;});
+  const url=await uploadPhotoToSupabase(file,'covers');
+  if(!url)return;
+  pCover=url;
+  document.getElementById('im-cover-prev').innerHTML=`<img src="${url}" style="width:58px;height:58px;border-radius:var(--rmd);object-fit:cover">`;
 };
-function saveItem(){
+async function saveItem(){
   if(!selZone)return;
   const notes=document.getElementById('im-notes').value.trim();
   const cfs=getCFs('im-cf');
@@ -1348,7 +1396,8 @@ function saveItem(){
     }
     const name=item.type==='plant'?(item.crop||'Plant'):(item.name||'Object');
     pushHistory(`Item edited: ${name}`,selZone,pItemEditId);
-    save();closeModal('item-modal');openItem(pItemEditId);renderItems();
+    await saveItemToSupabase(item,selZone);
+    closeModal('item-modal');openItem(pItemEditId);renderItems();
   }else{
     const id='i'+Date.now();
     const base={id,notes,customFields:cfs,cover:pCover,locked:false,archived:false,addedBy:currentUser||'Unknown'};
@@ -1364,7 +1413,8 @@ function saveItem(){
     if(!S.items[selZone])S.items[selZone]=[];
     S.items[selZone].push(item);S.logs[id]=[];
     pushHistory(`Item created: ${name}`,selZone,id);
-    save();closeModal('item-modal');renderItems();
+    await saveItemToSupabase(item,selZone);
+    closeModal('item-modal');renderItems();
   }
 }
 function openItem(id){
@@ -1449,24 +1499,28 @@ function editItem(id){
   prev.innerHTML=item.cover?`<img src="${item.cover}" style="width:58px;height:58px;border-radius:var(--rmd);object-fit:cover">`:'📷';
   openModal('item-modal');
 }
-function toggleItemLock(id){
+async function toggleItemLock(id){
   const item=(S.items[selZone]||[]).find(i=>i.id===id);if(!item)return;
-  item.locked=!item.locked;save();openItem(id);
+  item.locked=!item.locked;
+  await saveItemToSupabase(item,selZone);
+  openItem(id);
 }
-function toggleArchive(id){
+async function toggleArchive(id){
   const item=(S.items[selZone]||[]).find(i=>i.id===id);if(!item)return;
   const name=item.type==='plant'?(item.crop||'Plant'):(item.name||'Object');
   item.archived=!item.archived;
   pushHistory(`Item ${item.archived?'archived':'restored'}: ${name}`,selZone,id);
-  save();openItem(id);renderItems();
+  await saveItemToSupabase(item,selZone);
+  openItem(id);renderItems();
 }
-function deleteItem(id){
+async function deleteItem(id){
   if(!confirm('Permanently delete this item and all its logs?'))return;
   const item=(S.items[selZone]||[]).find(i=>i.id===id);
   const name=item?(item.type==='plant'?(item.crop||'Plant'):(item.name||'Object')):'Item';
   pushHistory(`Item deleted: ${name}`,selZone,id);
   S.items[selZone]=(S.items[selZone]||[]).filter(i=>i.id!==id);
-  delete S.logs[id];selItem=null;save();
+  delete S.logs[id];selItem=null;
+  await deleteItemFromSupabase(id);
   showItemsList();renderItems();
 }
 function showItemsList(){
@@ -1478,12 +1532,14 @@ function showItemsList(){
 
 // Cover upload
 function triggerCoverUpload(){document.getElementById('cover-inp').click();}
-document.getElementById('cover-inp').onchange=e=>{
+document.getElementById('cover-inp').onchange=async e=>{
   const file=e.target.files[0];if(!file||!selItem)return;
-  toBase64(file).then(result=>{
-    const item=(S.items[selZone]||[]).find(i=>i.id===selItem);if(!item)return;
-    item.cover=result;save();openItem(selItem);
-  });
+  const url=await uploadPhotoToSupabase(file,'covers');
+  if(!url)return;
+  const item=(S.items[selZone]||[]).find(i=>i.id===selItem);if(!item)return;
+  item.cover=url;
+  await saveItemToSupabase(item,selZone);
+  openItem(selItem);
 };
 
 // ── LOGS ──
@@ -1539,16 +1595,19 @@ function toggleSort(){
   document.getElementById('sort-btn').textContent=sortNewest?'Newest First':'Oldest First';
   renderLogs();
 }
-function toggleLogLock(id){
+async function toggleLogLock(id){
   const log=(S.logs[selItem]||[]).find(l=>l.id===id);if(!log)return;
-  log.locked=!log.locked;save();renderLogs();
+  log.locked=!log.locked;
+  await saveLogToSupabase(log,selItem);
+  renderLogs();
 }
-function deleteLog(id){
+async function deleteLog(id){
   if(!confirm('Delete this log entry?'))return;
   const log=(S.logs[selItem]||[]).find(l=>l.id===id);
   pushHistory(`Log deleted: ${log?.title||'Log'}`,selZone,selItem);
   S.logs[selItem]=(S.logs[selItem]||[]).filter(l=>l.id!==id);
-  save();renderLogs();renderItems();renderZones();
+  await deleteLogFromSupabase(id);
+  renderLogs();renderItems();renderZones();
 }
 
 // New log
@@ -1586,12 +1645,12 @@ async function toBase64(file){
   });
 }
 function handlePhotoInput(e){
-  Array.from(e.target.files).forEach(file=>{
-    toBase64(file).then(result=>{
-      pPhotos.push(result);
-      const img=document.createElement('img');img.className='phthumb';img.src=result;
-      document.getElementById('lm-photos').insertBefore(img,document.querySelector('#lm-photos label'));
-    });
+  Array.from(e.target.files).forEach(async file=>{
+    const url=await uploadPhotoToSupabase(file,'photos');
+    if(!url)return;
+    pPhotos.push(url);
+    const img=document.createElement('img');img.className='phthumb';img.src=url;
+    document.getElementById('lm-photos').insertBefore(img,document.querySelector('#lm-photos label'));
   });
 }
 document.getElementById('lm-tinp').addEventListener('keydown',e=>{
@@ -1615,15 +1674,16 @@ function addDF(){
   row.innerHTML=`<input class="cfk" placeholder="Label (e.g. Next Watering)"><input class="cfv" type="date"><button class="cfrm" onclick="this.parentElement.remove()">×</button>`;
   wrap.appendChild(row);
 }
-function saveLog(){
+async function saveLog(){
   if(!selItem)return;
   const item=(S.items[selZone]||[]).find(i=>i.id===selItem);
   if(item&&item.locked){alert('This item is locked.');return;}
   const season=document.getElementById('lm-season').value;
   if(!season){alert('Please select a season.');return;}
   const title=document.getElementById('lm-title').value.trim();
+  let log;
   if(editingLogId){
-    const log=(S.logs[selItem]||[]).find(l=>l.id===editingLogId);
+    log=(S.logs[selItem]||[]).find(l=>l.id===editingLogId);
     if(log){
       log.title=title;
       log.notes=document.getElementById('lm-notes').value.trim();
@@ -1636,7 +1696,7 @@ function saveLog(){
     pushHistory(`Log edited: ${title||'Log'}`,selZone,selItem);
     editingLogId=null;
   }else{
-    const log={
+    log={
       id:'l'+Date.now(),ts:Date.now(),season,locked:false,
       addedBy:currentUser||'Unknown',
       title,
@@ -1650,7 +1710,7 @@ function saveLog(){
     S.logs[selItem].push(log);
     pushHistory(`Log added: ${title||'Log'}`,selZone,selItem);
   }
-  save();
+  await saveLogToSupabase(log,selItem);
   closeModal('log-modal');renderLogs();renderItems();renderZones();
 }
 
@@ -1861,10 +1921,19 @@ mobHandle.addEventListener('touchend',e=>{
 });
 
 // ── INIT ──
-renderSeasonBar();
-renderFSeasons();
-renderZones();
-if(!currentUser)openModal('username-modal');
+async function init(){
+  currentUser=localStorage.getItem('gt_username')||'';
+  if(!currentUser){openModal('username-modal');}
+  await loadFromSupabase();
+  if(S.seasons.length===0){
+    S.seasons=['Spring 2025','Summer 2025','Fall 2025','Spring 2026'];
+    await saveSeasonsToSupabase();
+  }
+  renderSeasonBar();
+  renderFSeasons();
+  renderZones();
+}
+init();
 let swipeStartX=0,swipeStartY=0;
 const detailPanel=document.getElementById('detail-panel');
 detailPanel.addEventListener('touchstart',e=>{
