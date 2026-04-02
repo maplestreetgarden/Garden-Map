@@ -1159,12 +1159,50 @@ function renderHistoryList(){
 
 // ── ZONES ──
 function getMapImageRect(){
+  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
   const mapLayer=document.getElementById('map-layer');
   const img=mapLayer.querySelector('img');
   const canvas=mapLayer.querySelector('canvas');
   const el=img||canvas;
-  if(!el)return document.getElementById('map-area').getBoundingClientRect();
-  return el.getBoundingClientRect();
+  if(!el){
+    return{
+      left:mapAreaRect.left,
+      top:mapAreaRect.top,
+      width:mapAreaRect.width,
+      height:mapAreaRect.height
+    };
+  }
+
+  // Get the natural aspect ratio of the image
+  const naturalW=el.naturalWidth||el.width||mapAreaRect.width;
+  const naturalH=el.naturalHeight||el.height||mapAreaRect.height;
+  const aspect=naturalW/naturalH;
+
+  // Calculate how the image fits within the map area using object-fit:contain logic
+  const areaW=mapAreaRect.width;
+  const areaH=mapAreaRect.height;
+  const areaAspect=areaW/areaH;
+
+  let imgW,imgH;
+  if(aspect>areaAspect){
+    // Image is wider than area — letterboxed top and bottom
+    imgW=areaW;
+    imgH=areaW/aspect;
+  }else{
+    // Image is taller than area — letterboxed left and right
+    imgH=areaH;
+    imgW=areaH*aspect;
+  }
+
+  const imgLeft=mapAreaRect.left+(areaW-imgW)/2;
+  const imgTop=mapAreaRect.top+(areaH-imgH)/2;
+
+  return{
+    left:imgLeft,
+    top:imgTop,
+    width:imgW,
+    height:imgH
+  };
 }
 function updateSvgBounds(){
   const svg=document.getElementById('map-svg');
