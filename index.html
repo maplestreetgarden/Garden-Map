@@ -843,12 +843,29 @@ async function uploadPhotoToSupabase(file,prefix='photo'){
   const{data:urlData}=sb.storage.from('garden-assets').getPublicUrl(path);
   return urlData.publicUrl;
 }
-function showMapFromUrl(url){
+async function showMapFromUrl(url){
+  if(!url)return;
   document.getElementById('map-empty').style.display='none';
   document.getElementById('map-layer').querySelectorAll('canvas,img').forEach(el=>el.remove());
-  const img=document.createElement('img');
-  img.src=url;img.style.cssText='max-width:100%;max-height:100%;display:block';
-  document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
+  const isPdf=url.toLowerCase().includes('.pdf');
+  if(isPdf){
+    try{
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf=await pdfjsLib.getDocument(url).promise;
+      const page=await pdf.getPage(1);
+      const vp=page.getViewport({scale:1.5});
+      const c=document.createElement('canvas');
+      c.width=vp.width;c.height=vp.height;
+      document.getElementById('map-layer').insertBefore(c,document.getElementById('map-layer').firstChild);
+      await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    }catch(e){console.error('PDF render failed',e);}
+  }else{
+    const img=document.createElement('img');
+    img.src=url;
+    img.style.cssText='max-width:100%;max-height:100%;display:block';
+    img.onerror=()=>console.error('Image load failed',url);
+    document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
+  }
   renderZones();
 }
 
