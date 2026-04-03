@@ -117,7 +117,7 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #mob-season-row::-webkit-scrollbar{display:none}
 
 /* Empty state */
-#p-empty{align-items:center;justify-content:flex-start;text-align:center;padding:20px 24px;color:var(--n400);display:flex;flex-direction:column;}
+#p-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:32px 24px;}
 #p-empty p{font-size:13px;margin-top:10px;line-height:1.6}
 
 /* Zone header */
@@ -410,6 +410,8 @@ select.finp{min-height:48px;}
   .mo.wide{max-width:480px;}
 }
 @media(max-width:767px){#p-empty-drag-hint{display:block;}}
+@media(max-width:767px){#p-empty{justify-content:flex-start;padding-top:20px;}}
+@media(max-width:767px){#mobile-season-strip{display:block;}}
 </style>
 </head>
 <body>
@@ -452,6 +454,9 @@ select.finp{min-height:48px;}
     <button class="ab d" id="ab-pin">Reset PIN</button>
     <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
   </div>
+  <div id="mobile-season-strip" style="display:none;background:var(--g900);padding:5px 12px 7px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;">
+    <div id="mobile-season-scroll" style="display:flex;gap:6px;width:max-content;"></div>
+  </div>
 
   <div id="main">
     <div id="map-area">
@@ -485,8 +490,7 @@ select.finp{min-height:48px;}
       <div id="mob-season-row"></div>
 
       <div id="p-empty" class="sb-panel active">
-        <svg width="52" height="52" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" stroke="var(--g200)" stroke-width="1.5"/><circle cx="28" cy="28" r="16" stroke="var(--g200)" stroke-width="1"/><line x1="28" y1="2" x2="28" y2="54" stroke="var(--g100)" stroke-width="1"/><line x1="2" y1="28" x2="54" y2="28" stroke="var(--g100)" stroke-width="1"/><circle cx="28" cy="28" r="3.5" fill="var(--g200)"/><circle cx="28" cy="12" r="1.8" fill="var(--g100)"/><circle cx="28" cy="44" r="1.8" fill="var(--g100)"/><circle cx="12" cy="28" r="1.8" fill="var(--g100)"/><circle cx="44" cy="28" r="1.8" fill="var(--g100)"/></svg>
-        <h3 style="font-size:17px;color:var(--g900);margin-top:14px;">Maple Street Community Garden</h3>
+        <h3 style="font-size:17px;color:var(--g900);">Maple Street Community Garden</h3>
         <p style="font-size:13px;color:var(--n500);margin-top:6px;line-height:1.6;">Tap a zone on the map<br>to view its items and logs</p>
         <p id="p-empty-drag-hint" style="font-size:11px;color:var(--n400);margin-top:14px;display:none;">⬆ Drag up to explore</p>
       </div>
@@ -580,9 +584,9 @@ select.finp{min-height:48px;}
       </div>
     </div>
   </div>
-<div id="sidebar-footer" style="padding:6px 16px 8px;flex-shrink:0;text-align:center;">
-  <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:10px;color:var(--n300);text-decoration:none;letter-spacing:0.02em;">Send Feedback</a>
-</div>
+    <div style="padding:6px 16px 10px;flex-shrink:0;text-align:center;border-top:1px solid var(--n100);">
+      <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:10px;color:var(--n300);text-decoration:none;">Send Feedback</a>
+    </div>
     </div>
 
   <div id="mob-tabbar">
@@ -1089,6 +1093,8 @@ function renderSeasonBar(){
       container.appendChild(c);
     });
   });
+  const msc=document.getElementById('mobile-season-scroll');
+  if(msc){msc.innerHTML='';['All',...S.seasons].forEach(s=>{const c=document.createElement('span');c.className='s-chip'+(S.activeSeason===s?' act':'');c.textContent=s;c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();if(selZone)renderItems();if(selItem)renderLogs();};msc.appendChild(c);});}
 }
 function renderFSeasons(){
   const el=document.getElementById('f-season-chips');if(!el)return;el.innerHTML='';
