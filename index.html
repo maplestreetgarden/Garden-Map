@@ -27,7 +27,7 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 
 /* TOPBAR */
 #topbar{display:flex;align-items:center;gap:8px;padding:0 18px;height:52px;background:var(--g900);flex-shrink:0;z-index:30;position:relative}
-#app-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--w);white-space:nowrap;margin-right:6px;display:flex;align-items:center}
+#app-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--w);white-space:nowrap;display:flex;align-items:center;letter-spacing:0.01em;}
 #season-scroll{display:flex;align-items:center;gap:5px;overflow-x:auto;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #season-scroll::-webkit-scrollbar{display:none}
 .s-chip{font-size:12px;padding:4px 12px;border-radius:20px;white-space:nowrap;border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.6);cursor:pointer;background:transparent;flex-shrink:0;transition:all .15s}
@@ -102,7 +102,7 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .src-snip{font-size:12px;color:var(--n500);margin-top:3px}
 
 /* SIDEBAR */
-#sidebar{width:280px;flex-shrink:0;display:flex;flex-direction:column;background:var(--w);border-left:1px solid var(--n100);overflow:hidden;transition:transform .25s;position:relative;padding-left:24px;}
+#sidebar{width:380px;flex-shrink:0;display:flex;flex-direction:column;background:var(--w);border-left:1px solid var(--n100);overflow:hidden;transition:transform .25s;position:relative;padding-left:24px;}
 #mob-handle{display:none}
 #mob-handle-bar{width:48px;height:6px;border-radius:3px;background:var(--n300);}
 #sb-resize{position:absolute;left:0;top:0;bottom:0;width:24px;cursor:ew-resize;z-index:10;display:flex;align-items:center;justify-content:center;background:transparent;transition:background .15s;}
@@ -241,6 +241,8 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .btn-p.sm{font-size:12px;padding:5px 12px}
 .btn-s{font-size:12px;padding:6px 13px;border-radius:var(--rmd);border:1px solid var(--n200);background:var(--w);color:var(--n700);cursor:pointer;transition:all .12s}
 .btn-s:hover{background:var(--n50)}
+button{text-align:center;}
+.btn-p,.btn-s,.ab,.lab,.back-btn{display:inline-flex;align-items:center;justify-content:center;text-align:center;}
 
 /* Modals */
 .mbk{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center;}
@@ -380,8 +382,8 @@ select.finp{min-height:48px;}
   #zoom-controls{display:none}
   #app-title .title-full{display:none!important;}
   #app-title .title-short{display:inline!important;}
-  #topbar{height:auto;min-height:48px;padding:8px 12px;flex-wrap:nowrap;overflow:hidden;}
-  #app-title{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin-right:4px;}
+  #topbar{height:48px;padding:8px 12px;flex-wrap:nowrap;overflow:hidden;}
+  #app-title{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin-right:4px;}
   #search-wrap{flex-shrink:0;}
   #admin-bar.show .ab{font-size:12px;padding:7px 12px;min-height:40px;}
   #zone-hd{padding:10px 12px 8px;}
@@ -396,8 +398,9 @@ select.finp{min-height:48px;}
   #logs-list{padding-bottom:32px;}
   #detail-body{padding-bottom:16px;}
 }
+@media(min-width:1024px){#sidebar{width:380px;}}
+@media(min-width:768px) and (max-width:1023px){#sidebar{width:320px;}}
 @media(min-width:768px){
-  #sidebar{width:280px}
   #app-title .title-full{display:inline!important;}
   #app-title .title-short{display:none!important;}
   #search-icon-btn{display:none;}
@@ -406,6 +409,7 @@ select.finp{min-height:48px;}
   .mo{border-radius:var(--rxl);max-width:430px;max-height:calc(100vh - 80px);}
   .mo.wide{max-width:480px;}
 }
+@media(max-width:767px){#p-empty-drag-hint{display:block;}}
 </style>
 </head>
 <body>
@@ -413,7 +417,7 @@ select.finp{min-height:48px;}
 
   <div id="topbar">
     <span id="app-title">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><path d="M12 22v-7"/><path d="M9 9c0-3.5 6-3.5 6 0a4 4 0 01-4 7H9a4 4 0 01-4-4c0-2.5 2-4 4-3"/><path d="M15 9a4 4 0 014 4c0 2.5-2 4-4 3"/></svg>
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" style="flex-shrink:0;margin-right:10px"><circle cx="16" cy="16" r="14" stroke="rgba(255,255,255,0.6)" stroke-width="1"/><circle cx="16" cy="16" r="9" stroke="rgba(255,255,255,0.4)" stroke-width="0.75"/><line x1="16" y1="2" x2="16" y2="30" stroke="rgba(255,255,255,0.35)" stroke-width="0.75"/><line x1="2" y1="16" x2="30" y2="16" stroke="rgba(255,255,255,0.35)" stroke-width="0.75"/><line x1="6" y1="6" x2="26" y2="26" stroke="rgba(255,255,255,0.25)" stroke-width="0.75"/><line x1="26" y1="6" x2="6" y2="26" stroke="rgba(255,255,255,0.25)" stroke-width="0.75"/><circle cx="16" cy="16" r="2.5" fill="rgba(255,255,255,0.7)"/><circle cx="16" cy="7" r="1.2" fill="rgba(255,255,255,0.5)"/><circle cx="16" cy="25" r="1.2" fill="rgba(255,255,255,0.5)"/><circle cx="7" cy="16" r="1.2" fill="rgba(255,255,255,0.5)"/><circle cx="25" cy="16" r="1.2" fill="rgba(255,255,255,0.5)"/></svg>
       <span class="title-full">Maple Street Community Garden</span><span class="title-short">MSCG</span>
     </span>
     <div id="season-scroll"></div>
@@ -470,8 +474,10 @@ select.finp{min-height:48px;}
       <div id="mob-season-row"></div>
 
       <div id="p-empty" class="sb-panel active">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M6 38l10-14 8 9 6-8 14 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="16" r="3.5" stroke="currentColor" stroke-width="1.4"/></svg>
-        <p>Click a zone on the map to view its logs</p>
+        <svg width="52" height="52" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26" stroke="var(--g200)" stroke-width="1.5"/><circle cx="28" cy="28" r="16" stroke="var(--g200)" stroke-width="1"/><line x1="28" y1="2" x2="28" y2="54" stroke="var(--g100)" stroke-width="1"/><line x1="2" y1="28" x2="54" y2="28" stroke="var(--g100)" stroke-width="1"/><circle cx="28" cy="28" r="3.5" fill="var(--g200)"/><circle cx="28" cy="12" r="1.8" fill="var(--g100)"/><circle cx="28" cy="44" r="1.8" fill="var(--g100)"/><circle cx="12" cy="28" r="1.8" fill="var(--g100)"/><circle cx="44" cy="28" r="1.8" fill="var(--g100)"/></svg>
+        <h3 style="font-size:17px;color:var(--g900);margin-top:14px;">Maple Street Garden</h3>
+        <p style="font-size:13px;color:var(--n500);margin-top:6px;line-height:1.6;">Tap a zone on the map<br>to view its items and logs</p>
+        <p id="p-empty-drag-hint" style="font-size:11px;color:var(--n400);margin-top:14px;display:none;">⬆ Drag up to explore</p>
       </div>
 
       <div id="p-zone" class="sb-panel">
@@ -2099,7 +2105,7 @@ document.getElementById('sb-resize').addEventListener('mousedown',e=>{
 });
 document.addEventListener('mousemove',e=>{
   if(!sbResizing)return;
-  const newW=Math.max(220,Math.min(600,sbStartW-(e.clientX-sbStartX)));
+  const newW=Math.max(280,Math.min(700,sbStartW-(e.clientX-sbStartX)));
   document.getElementById('sidebar').style.width=newW+'px';
 });
 document.addEventListener('mouseup',()=>{if(sbResizing){sbResizing=false;document.body.style.cursor='';}});
