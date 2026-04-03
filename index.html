@@ -1511,6 +1511,7 @@ function openItem(id){
   document.getElementById('d-edit-btn').onclick=()=>editItem(id);
   const cover=document.getElementById('id-cover');
   cover.innerHTML=item.cover?`<img src="${item.cover}" style="width:72px;height:72px;object-fit:cover">`:(item.type==='plant'?'🌱':'🔧');
+  cover.onclick=item.cover?()=>openPhotoViewer([item.cover],0):()=>triggerCoverUpload();
   const fields=document.getElementById('id-fields');fields.innerHTML='';
   const addF=(k,v,cls='')=>{
     if(!v)return;
@@ -1640,7 +1641,7 @@ function renderLogs(){
     (l.fields||[]).forEach(f=>{fieldsHTML+=`<div class="lfr"><span class="lfk">${f.k}</span><span class="lfv">${f.v}</span></div>`;});
     (l.dateFields||[]).forEach(f=>{fieldsHTML+=`<div class="lfr"><span class="lfk">${f.k}</span><span class="lfv">${f.v}</span></div>`;});
     const tagsHTML=(l.tags||[]).map(t=>`<span class="ltag">${t}</span>`).join('');
-    const photosHTML=(l.photos||[]).map(p=>`<img class="lphoto" src="${p}" onclick="window.open(this.src,'_blank')">`).join('');
+    const photosHTML=(l.photos||[]).map((p,i)=>`<img class="lphoto" src="${p}" onclick="openPhotoViewer(${JSON.stringify(l.photos)},${i})">`).join('');
     const lockLabel=l.locked?'Unlock':'Lock';
     const canEdit=(l.addedBy===currentUser)||isAdmin;
     card.innerHTML=`
@@ -2154,6 +2155,44 @@ handle.addEventListener('touchend',e=>{
   }
 });
 
+// ── PHOTO VIEWER ──
+let pvPhotos=[],pvIndex=0;
+
+function openPhotoViewer(photos,index){
+  pvPhotos=photos;pvIndex=index;
+  document.getElementById('photo-viewer').style.display='flex';
+  renderPhotoViewer();
+}
+
+function renderPhotoViewer(){
+  document.getElementById('pv-img').src=pvPhotos[pvIndex];
+  document.getElementById('pv-counter').textContent=pvPhotos.length>1?`${pvIndex+1} / ${pvPhotos.length}`:'';
+  document.getElementById('pv-prev').style.display=pvPhotos.length>1?'flex':'none';
+  document.getElementById('pv-next').style.display=pvPhotos.length>1?'flex':'none';
+}
+
+document.getElementById('pv-close').onclick=()=>document.getElementById('photo-viewer').style.display='none';
+document.getElementById('pv-prev').onclick=()=>{pvIndex=(pvIndex-1+pvPhotos.length)%pvPhotos.length;renderPhotoViewer();};
+document.getElementById('pv-next').onclick=()=>{pvIndex=(pvIndex+1)%pvPhotos.length;renderPhotoViewer();};
+
+document.getElementById('photo-viewer').addEventListener('click',e=>{
+  if(e.target===document.getElementById('photo-viewer'))document.getElementById('photo-viewer').style.display='none';
+});
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('photo-viewer').style.display==='none')return;
+  if(e.key==='ArrowLeft')document.getElementById('pv-prev').click();
+  if(e.key==='ArrowRight')document.getElementById('pv-next').click();
+  if(e.key==='Escape')document.getElementById('pv-close').click();
+});
+
+let pvTouchX=0;
+document.getElementById('photo-viewer').addEventListener('touchstart',e=>{pvTouchX=e.touches[0].clientX;},{passive:true});
+document.getElementById('photo-viewer').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-pvTouchX;
+  if(Math.abs(dx)>50){dx<0?document.getElementById('pv-next').click():document.getElementById('pv-prev').click();}
+},{passive:true});
+
 // ── INIT ──
 async function init(){
   currentUser=localStorage.getItem('gt_username')||'';
@@ -2214,6 +2253,13 @@ window.addEventListener('resize',()=>{
     </div>
     <div class="mft"><button class="btn-p" onclick="closeModal('help-modal')">Got it</button></div>
   </div>
+</div>
+<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;flex-direction:column;align-items:center;justify-content:center;">
+  <button id="pv-close" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;z-index:1;">×</button>
+  <button id="pv-prev" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">‹</button>
+  <button id="pv-next" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">›</button>
+  <img id="pv-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;touch-action:pinch-zoom;">
+  <div id="pv-counter" style="color:rgba(255,255,255,.5);font-size:12px;margin-top:12px;"></div>
 </div>
 </body>
 </html>
