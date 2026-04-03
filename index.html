@@ -580,9 +580,9 @@ select.finp{min-height:48px;}
       </div>
     </div>
   </div>
-      <div id="sidebar-footer" style="padding:10px 16px;border-top:1px solid var(--n100);flex-shrink:0;text-align:center;">
-        <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:11px;color:var(--n400);text-decoration:none;">Send feedback to Faye</a>
-      </div>
+<div id="sidebar-footer" style="padding:6px 16px 8px;flex-shrink:0;text-align:center;">
+  <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:10px;color:var(--n300);text-decoration:none;letter-spacing:0.02em;">Send Feedback</a>
+</div>
     </div>
 
   <div id="mob-tabbar">
@@ -790,6 +790,7 @@ let zoneEditMode=null,zoneDragStart=null,originalPoints=null,activeVertexIndex=-
 let moveStartX=0,moveStartY=0,moveStartPoints=null;
 let pItemType='plant',pCondition='',pItemEditId=null;
 let pTags=[],pPhotos=[],pCover=null;
+let editingLogPhotos=[];
 let pinCb=null;
 let editingLogId=null;
 let mapZoom=1,panX=0,panY=0,isPanning=false,panStartX=0,panStartY=0;
@@ -1706,7 +1707,7 @@ document.getElementById('new-log-btn').onclick=()=>{
   const item=(S.items[selZone]||[]).find(i=>i.id===selItem);
   if(item&&item.locked){alert('This item is locked. Admin must unlock it before adding logs.');return;}
   editingLogId=null;
-  pTags=[];pPhotos=[];
+  pTags=[];pPhotos=[];editingLogPhotos=[];
   document.getElementById('lm-title').value='';
   document.getElementById('lm-notes').value='';
   document.getElementById('lm-cf').innerHTML='';
@@ -1714,9 +1715,7 @@ document.getElementById('new-log-btn').onclick=()=>{
   document.querySelectorAll('#lm-tags .tpill').forEach(el=>el.remove());
   document.getElementById('lm-tinp').value='';
   populateSeasonDropdown();
-  const pw=document.getElementById('lm-photos');
-  pw.innerHTML='<label class="phadd" for="lm-photo-inp">+</label><input type="file" id="lm-photo-inp" accept="image/*,.heic,.heif" multiple style="display:none">';
-  document.getElementById('lm-photo-inp').onchange=handlePhotoInput;
+  renderLogModalPhotos();
   document.getElementById('log-modal-title').textContent='New Log Entry';
   openModal('log-modal');
 };
@@ -1734,6 +1733,42 @@ async function toBase64(file){
     r.onerror=rej;
     r.readAsDataURL(f);
   });
+}
+function renderLogModalPhotos(){
+  const wrap=document.getElementById('lm-photos');
+  if(!wrap)return;
+  wrap.innerHTML='';
+  editingLogPhotos.forEach((url,i)=>{
+    const thumb=document.createElement('div');
+    thumb.style.cssText='position:relative;display:inline-block;margin:0 4px 4px 0;';
+    const img=document.createElement('img');
+    img.src=url;img.className='phthumb';img.style.cursor='pointer';
+    img.onclick=(idx=>()=>openPhotoViewer(editingLogPhotos,idx))(i);
+    const rm=document.createElement('button');
+    rm.textContent='×';
+    rm.style.cssText='position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--r700);color:white;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;padding:0;';
+    rm.onclick=async e=>{
+      e.stopPropagation();
+      const path=url.split('/garden-assets/')[1];
+      if(path)await sb.storage.from('garden-assets').remove([path]);
+      editingLogPhotos.splice(i,1);
+      renderLogModalPhotos();
+    };
+    thumb.appendChild(img);thumb.appendChild(rm);wrap.appendChild(thumb);
+  });
+  const addLabel=document.createElement('label');
+  addLabel.className='phadd';addLabel.htmlFor='lm-photo-inp';addLabel.textContent='+';
+  wrap.appendChild(addLabel);
+  const inp=document.createElement('input');
+  inp.type='file';inp.id='lm-photo-inp';inp.accept='image/*,.heic,.heif';inp.multiple=true;inp.style.display='none';
+  inp.onchange=async e=>{
+    for(const file of Array.from(e.target.files)){
+      const url=await uploadPhotoToSupabase(file,'photo');
+      if(url)editingLogPhotos.push(url);
+    }
+    renderLogModalPhotos();
+  };
+  wrap.appendChild(inp);
 }
 function handlePhotoInput(e){
   Array.from(e.target.files).forEach(async file=>{
@@ -1782,7 +1817,7 @@ async function saveLog(){
       log.fields=getCFs('lm-cf');
       log.dateFields=getCFs('lm-df');
       log.tags=[...pTags];
-      log.photos=[...pPhotos];
+      log.photos=[...editingLogPhotos];
     }
     pushHistory(`Log edited: ${title||'Log'}`,selZone,selItem);
     editingLogId=null;
@@ -1795,7 +1830,7 @@ async function saveLog(){
       fields:getCFs('lm-cf'),
       dateFields:getCFs('lm-df'),
       tags:[...pTags],
-      photos:[...pPhotos]
+      photos:[...editingLogPhotos]
     };
     if(!S.logs[selItem])S.logs[selItem]=[];
     S.logs[selItem].push(log);
@@ -1808,7 +1843,7 @@ async function saveLog(){
 function editLog(id){
   const log=(S.logs[selItem]||[]).find(l=>l.id===id);if(!log)return;
   editingLogId=id;
-  pTags=[...(log.tags||[])];pPhotos=[...(log.photos||[])];
+  pTags=[...(log.tags||[])];pPhotos=[...(log.photos||[])];editingLogPhotos=[...(log.photos||[])];
   document.getElementById('lm-title').value=log.title||'';
   document.getElementById('lm-notes').value=log.notes||'';
   populateSeasonDropdown(log.season);
@@ -1831,10 +1866,7 @@ function editLog(id){
     document.getElementById('lm-tags').insertBefore(pill,document.getElementById('lm-tinp'));
   });
   document.getElementById('lm-tinp').value='';
-  const pw=document.getElementById('lm-photos');
-  pw.innerHTML='<label class="phadd" for="lm-photo-inp">+</label><input type="file" id="lm-photo-inp" accept="image/*,.heic,.heif" multiple style="display:none">';
-  document.getElementById('lm-photo-inp').onchange=handlePhotoInput;
-  pPhotos.forEach(p=>{const img=document.createElement('img');img.className='phthumb';img.src=p;pw.insertBefore(img,pw.querySelector('label'));});
+  renderLogModalPhotos();
   document.getElementById('log-modal-title').textContent='Edit Log Entry';
   openModal('log-modal');
 }
@@ -2248,8 +2280,8 @@ window.addEventListener('resize',()=>{
         <p style="font-weight:500;font-size:15px;margin-bottom:6px">Need Help?</p>
         <p style="font-size:14px;line-height:1.7;color:var(--n700)">If you have any questions or run into issues, please reach out to our garden admin <strong>Faye</strong> who manages the app and can assist with anything you need.</p>
       </div>
-      <div style="padding-top:12px;border-top:1px solid var(--n100);text-align:center;">
-        <p style="font-size:13px;color:var(--n700);line-height:1.6;">Have an idea for improvement or notice something weird?<br>We'd love to hear from you.</p>
+      <div style="margin-top:4px;padding-top:14px;border-top:1px solid var(--n100);text-align:center;">
+        <p style="font-size:13px;color:var(--n700);line-height:1.6;">Have an idea for improvement or notice something weird? We'd love to hear from you.</p>
         <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="display:inline-block;margin-top:8px;font-size:13px;color:var(--g800);font-weight:500;text-decoration:none;">Email Faye ↗</a>
       </div>
     </div>
