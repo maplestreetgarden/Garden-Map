@@ -1526,7 +1526,7 @@ function openItem(id){
   document.getElementById('d-edit-btn').onclick=()=>editItem(id);
   const cover=document.getElementById('id-cover');
   cover.innerHTML=item.cover?`<img src="${item.cover}" style="width:72px;height:72px;object-fit:cover">`:(item.type==='plant'?'🌱':'🔧');
-  cover.onclick=item.cover?()=>openPhotoViewer([item.cover],0):()=>triggerCoverUpload();
+  document.getElementById('id-cover').onclick=()=>{const it=selZone&&selItem?S.items[selZone]?.find(i=>i.id===selItem):null;if(it&&it.cover)openPhotoViewer([it.cover],0);else document.getElementById('cover-inp').click();};
   const fields=document.getElementById('id-fields');fields.innerHTML='';
   const addF=(k,v,cls='')=>{
     if(!v)return;
@@ -2171,20 +2171,9 @@ handle.addEventListener('touchend',e=>{
 });
 
 // ── PHOTO VIEWER ──
-let pvPhotos=[],pvIndex=0;
-
-function openPhotoViewer(photos,index){
-  pvPhotos=photos;pvIndex=index;
-  document.getElementById('photo-viewer').style.display='flex';
-  renderPhotoViewer();
-}
-
-function renderPhotoViewer(){
-  document.getElementById('pv-img').src=pvPhotos[pvIndex];
-  document.getElementById('pv-counter').textContent=pvPhotos.length>1?`${pvIndex+1} / ${pvPhotos.length}`:'';
-  document.getElementById('pv-prev').style.display=pvPhotos.length>1?'flex':'none';
-  document.getElementById('pv-next').style.display=pvPhotos.length>1?'flex':'none';
-}
+let pvPhotos=[],pvIndex=0,pvTouchX=0;
+function openPhotoViewer(photos,index){pvPhotos=photos;pvIndex=index||0;const v=document.getElementById('photo-viewer');if(v)v.style.display='flex';renderPhotoViewer();}
+function renderPhotoViewer(){const img=document.getElementById('pv-img');const ctr=document.getElementById('pv-counter');const prev=document.getElementById('pv-prev');const next=document.getElementById('pv-next');if(img)img.src=pvPhotos[pvIndex];if(ctr)ctr.textContent=pvPhotos.length>1?`${pvIndex+1} / ${pvPhotos.length}`:'';if(prev)prev.style.display=pvPhotos.length>1?'flex':'none';if(next)next.style.display=pvPhotos.length>1?'flex':'none';}
 
 const pvClose=document.getElementById('pv-close');
 if(pvClose)pvClose.onclick=()=>document.getElementById('photo-viewer').style.display='none';
@@ -2195,24 +2184,12 @@ if(pvNext)pvNext.onclick=()=>{pvIndex=(pvIndex+1)%pvPhotos.length;renderPhotoVie
 
 const pvViewer=document.getElementById('photo-viewer');
 if(pvViewer){
-  pvViewer.addEventListener('click',e=>{
-    if(e.target===pvViewer)pvViewer.style.display='none';
-  });
-  let pvTouchX=0;
-  pvViewer.addEventListener('touchstart',e=>{pvTouchX=e.touches[0].clientX;},{passive:true});
-  pvViewer.addEventListener('touchend',e=>{
-    const dx=e.changedTouches[0].clientX-pvTouchX;
-    if(Math.abs(dx)>50){dx<0?pvNext?.click():pvPrev?.click();}
-  },{passive:true});
+  pvViewer.addEventListener('click',e=>{if(e.target.id==='photo-viewer'||e.target.id==='pv-img')pvViewer.style.display='none';});
+  pvViewer.addEventListener('touchstart',e=>{pvTouchX=e.touches[0].clientX;e.stopPropagation();},{passive:true});
+  pvViewer.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-pvTouchX;if(Math.abs(dx)>50){dx<0?pvNext?.click():pvPrev?.click();}e.stopPropagation();},{passive:true});
 }
 
-document.addEventListener('keydown',e=>{
-  const pv=document.getElementById('photo-viewer');
-  if(!pv||pv.style.display==='none')return;
-  if(e.key==='ArrowLeft')pvPrev?.click();
-  if(e.key==='ArrowRight')pvNext?.click();
-  if(e.key==='Escape')pvClose?.click();
-});
+document.addEventListener('keydown',e=>{const v=document.getElementById('photo-viewer');if(!v||v.style.display==='none')return;if(e.key==='ArrowLeft')document.getElementById('pv-prev')?.click();if(e.key==='ArrowRight')document.getElementById('pv-next')?.click();if(e.key==='Escape')document.getElementById('pv-close')?.click();});
 
 // ── INIT ──
 async function init(){
@@ -2279,12 +2256,12 @@ window.addEventListener('resize',()=>{
     <div class="mft"><button class="btn-p" onclick="closeModal('help-modal')">Got it</button></div>
   </div>
 </div>
-<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;flex-direction:column;align-items:center;justify-content:center;">
-  <button id="pv-close" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;z-index:1;">×</button>
-  <button id="pv-prev" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">‹</button>
-  <button id="pv-next" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">›</button>
-  <img id="pv-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;touch-action:pinch-zoom;">
-  <div id="pv-counter" style="color:rgba(255,255,255,.5);font-size:12px;margin-top:12px;"></div>
+<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;align-items:center;justify-content:center;">
+  <button id="pv-close" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:22px;cursor:pointer;z-index:302;display:flex;align-items:center;justify-content:center;">×</button>
+  <button id="pv-prev" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:24px;cursor:pointer;z-index:301;display:flex;align-items:center;justify-content:center;">‹</button>
+  <button id="pv-next" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:24px;cursor:pointer;z-index:301;display:flex;align-items:center;justify-content:center;">›</button>
+  <img id="pv-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;touch-action:pinch-zoom;z-index:300;">
+  <div id="pv-counter" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:12px;z-index:301;"></div>
 </div>
 </body>
 </html>
