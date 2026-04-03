@@ -60,7 +60,7 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #map-content{position:absolute;inset:0;transform-origin:center center}
 #map-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 #map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain}
-#map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+#map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 #map-svg.editing{pointer-events:all;cursor:crosshair;}
 #map-svg.move-mode{cursor:grab;pointer-events:all;}
 #map-svg.move-mode:active{cursor:grabbing;}
@@ -448,8 +448,8 @@ select.finp{min-height:48px;}
             <p>Upload your garden map<br>in Admin mode to get started</p>
           </div>
         </div>
+        <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       </div>
-      <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       <div id="zone-hint">Click to place points · click first point to close · Esc to cancel</div>
       <div id="draw-dots"></div>
       <div id="vertex-handles"></div>
@@ -1157,44 +1157,6 @@ function renderHistoryList(){
 }
 
 // ── ZONES ──
-function imgToAreaCoords(px,py){
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const mapLayer=document.getElementById('map-layer');
-  const img=mapLayer.querySelector('img')||mapLayer.querySelector('canvas');
-  if(!img)return[px,py];
-  const naturalW=img.naturalWidth||img.width||mapAreaRect.width;
-  const naturalH=img.naturalHeight||img.height||mapAreaRect.height;
-  const aspect=naturalW/naturalH;
-  const areaW=mapAreaRect.width;
-  const areaH=mapAreaRect.height;
-  const areaAspect=areaW/areaH;
-  let imgW,imgH,imgLeft,imgTop;
-  if(aspect>areaAspect){imgW=areaW;imgH=areaW/aspect;}
-  else{imgH=areaH;imgW=areaH*aspect;}
-  imgLeft=(areaW-imgW)/2;imgTop=(areaH-imgH)/2;
-  const areaX=(imgLeft+px/100*imgW)/areaW*100;
-  const areaY=(imgTop+py/100*imgH)/areaH*100;
-  return[+areaX.toFixed(3),+areaY.toFixed(3)];
-}
-function areaToImgCoords(ax,ay){
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const mapLayer=document.getElementById('map-layer');
-  const img=mapLayer.querySelector('img')||mapLayer.querySelector('canvas');
-  if(!img)return[ax,ay];
-  const naturalW=img.naturalWidth||img.width||mapAreaRect.width;
-  const naturalH=img.naturalHeight||img.height||mapAreaRect.height;
-  const aspect=naturalW/naturalH;
-  const areaW=mapAreaRect.width;
-  const areaH=mapAreaRect.height;
-  const areaAspect=areaW/areaH;
-  let imgW,imgH,imgLeft,imgTop;
-  if(aspect>areaAspect){imgW=areaW;imgH=areaW/aspect;}
-  else{imgH=areaH;imgW=areaH*aspect;}
-  imgLeft=(areaW-imgW)/2;imgTop=(areaH-imgH)/2;
-  const imgX=(ax/100*areaW-imgLeft)/imgW*100;
-  const imgY=(ay/100*areaH-imgTop)/imgH*100;
-  return[+imgX.toFixed(3),+imgY.toFixed(3)];
-}
 const mapSvg=document.getElementById('map-svg');
 const mapContent=document.getElementById('map-content');
 
@@ -1219,10 +1181,9 @@ function toggleZoneEdit(){
 }
 mapSvg.addEventListener('click',e=>{
   if(!editingZones)return;
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const ax=(e.clientX-mapAreaRect.left)/mapAreaRect.width*100;
-  const ay=(e.clientY-mapAreaRect.top)/mapAreaRect.height*100;
-  const[cx,cy]=areaToImgCoords(ax,ay);
+  const svgRect=mapSvg.getBoundingClientRect();
+  const cx=+((e.clientX-svgRect.left)/svgRect.width*100).toFixed(3);
+  const cy=+((e.clientY-svgRect.top)/svgRect.height*100).toFixed(3);
   if(drawPts.length>=3){
     const dx=cx-drawPts[0][0];
     const dy=cy-drawPts[0][1];
@@ -1246,13 +1207,13 @@ function clearDrawPreview(){
 function updateDrawPreview(){
   document.getElementById('draw-dots').innerHTML='';
   if(!drawPts.length)return;
+  const svgRect=mapSvg.getBoundingClientRect();
   const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
   drawPts.forEach((p,i)=>{
     const el=document.createElement('div');
     el.className='draw-dot-el'+(i===0?' first-dot':'');
-    const[ax,ay]=imgToAreaCoords(p[0],p[1]);
-    const xPx=(ax/100)*mapAreaRect.width;
-    const yPx=(ay/100)*mapAreaRect.height;
+    const xPx=(p[0]/100)*svgRect.width+(svgRect.left-mapAreaRect.left);
+    const yPx=(p[1]/100)*svgRect.height+(svgRect.top-mapAreaRect.top);
     el.style.left=xPx+'px';
     el.style.top=yPx+'px';
     document.getElementById('draw-dots').appendChild(el);
@@ -1310,7 +1271,7 @@ function renderZones(){
       return(S.logs[item.id]||[]).some(l=>logVisibleInSeason(l,item.type,S.activeSeason));
     });
     const zc=ZONE_COLORS[z.color||'gray'];
-    const ptsStr=z.points.map(p=>{const[ax,ay]=imgToAreaCoords(p[0],p[1]);return`${ax},${ay}`;}).join(' ');
+    const ptsStr=z.points.map(p=>`${p[0]},${p[1]}`).join(' ');
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','zg');
     const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
@@ -2047,13 +2008,13 @@ function renderVertexHandles(){
   container.innerHTML='';container.classList.add('active');
   if(!selZone)return;
   const z=S.zones.find(z=>z.id===selZone);if(!z)return;
+  const svgRect=mapSvg.getBoundingClientRect();
   const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
   z.points.forEach((p,i)=>{
     const handle=document.createElement('div');
     handle.className='vertex-handle';
-    const[ax,ay]=imgToAreaCoords(p[0],p[1]);
-    const xPx=(ax/100)*mapAreaRect.width;
-    const yPx=(ay/100)*mapAreaRect.height;
+    const xPx=(p[0]/100)*svgRect.width+(svgRect.left-mapAreaRect.left);
+    const yPx=(p[1]/100)*svgRect.height+(svgRect.top-mapAreaRect.top);
     handle.style.left=xPx+'px';
     handle.style.top=yPx+'px';
     handle.addEventListener('mousedown',e=>{activeVertexIndex=i;e.stopPropagation();e.preventDefault();});
@@ -2066,31 +2027,26 @@ function renderVertexHandles(){
 document.getElementById('map-svg').addEventListener('mousedown',e=>{
   if(zoneEditMode!=='move'||!selZone)return;
   const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const ax=(e.clientX-mapAreaRect.left)/mapAreaRect.width*100;
-  const ay=(e.clientY-mapAreaRect.top)/mapAreaRect.height*100;
-  const[ix,iy]=areaToImgCoords(ax,ay);
-  moveStartX=ix;moveStartY=iy;
+  const svgRect=mapSvg.getBoundingClientRect();
+  moveStartX=(e.clientX-svgRect.left)/svgRect.width*100;
+  moveStartY=(e.clientY-svgRect.top)/svgRect.height*100;
   moveStartPoints=JSON.parse(JSON.stringify(z.points));
   e.preventDefault();
 });
 document.getElementById('map-svg').addEventListener('touchstart',e=>{
   if(zoneEditMode!=='move'||!selZone)return;
   const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const ax=(e.touches[0].clientX-mapAreaRect.left)/mapAreaRect.width*100;
-  const ay=(e.touches[0].clientY-mapAreaRect.top)/mapAreaRect.height*100;
-  const[ix,iy]=areaToImgCoords(ax,ay);
-  moveStartX=ix;moveStartY=iy;
+  const svgRect=mapSvg.getBoundingClientRect();
+  moveStartX=(e.touches[0].clientX-svgRect.left)/svgRect.width*100;
+  moveStartY=(e.touches[0].clientY-svgRect.top)/svgRect.height*100;
   moveStartPoints=JSON.parse(JSON.stringify(z.points));
 },{passive:true});
 document.getElementById('map-svg').addEventListener('touchmove',e=>{
   if(zoneEditMode!=='move'||!selZone||!moveStartPoints)return;
   const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-  const ax=(e.touches[0].clientX-mapAreaRect.left)/mapAreaRect.width*100;
-  const ay=(e.touches[0].clientY-mapAreaRect.top)/mapAreaRect.height*100;
-  const[cx,cy]=areaToImgCoords(ax,ay);
+  const svgRect=mapSvg.getBoundingClientRect();
+  const cx=(e.touches[0].clientX-svgRect.left)/svgRect.width*100;
+  const cy=(e.touches[0].clientY-svgRect.top)/svgRect.height*100;
   const dx=cx-moveStartX;
   const dy=cy-moveStartY;
   z.points=moveStartPoints.map(p=>[Math.max(0,Math.min(100,p[0]+dx)),Math.max(0,Math.min(100,p[1]+dy))]);
@@ -2101,32 +2057,29 @@ document.getElementById('map-svg').addEventListener('touchmove',e=>{
 document.addEventListener('mousemove',e=>{
   if(zoneEditMode==='move'&&selZone&&moveStartPoints){
     const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-    const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-    const ax=(e.clientX-mapAreaRect.left)/mapAreaRect.width*100;
-    const ay=(e.clientY-mapAreaRect.top)/mapAreaRect.height*100;
-    const[cx,cy]=areaToImgCoords(ax,ay);
+    const svgRect=mapSvg.getBoundingClientRect();
+    const cx=(e.clientX-svgRect.left)/svgRect.width*100;
+    const cy=(e.clientY-svgRect.top)/svgRect.height*100;
     const dx=cx-moveStartX;const dy=cy-moveStartY;
     z.points=moveStartPoints.map(p=>[Math.max(0,Math.min(100,p[0]+dx)),Math.max(0,Math.min(100,p[1]+dy))]);
     renderZones();
   }
   if(zoneEditMode==='reshape'&&activeVertexIndex!==-1&&selZone){
     const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-    const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-    const ax=(e.clientX-mapAreaRect.left)/mapAreaRect.width*100;
-    const ay=(e.clientY-mapAreaRect.top)/mapAreaRect.height*100;
-    const[ix,iy]=areaToImgCoords(ax,ay);
-    z.points[activeVertexIndex]=[Math.max(0,Math.min(100,ix)),Math.max(0,Math.min(100,iy))];
+    const svgRect=mapSvg.getBoundingClientRect();
+    const x=Math.max(0,Math.min(100,(e.clientX-svgRect.left)/svgRect.width*100));
+    const y=Math.max(0,Math.min(100,(e.clientY-svgRect.top)/svgRect.height*100));
+    z.points[activeVertexIndex]=[+x.toFixed(3),+y.toFixed(3)];
     renderZones();renderVertexHandles();
   }
 });
 document.addEventListener('touchmove',e=>{
   if(zoneEditMode==='reshape'&&activeVertexIndex!==-1&&selZone){
     const z=S.zones.find(z=>z.id===selZone);if(!z)return;
-    const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
-    const ax=(e.touches[0].clientX-mapAreaRect.left)/mapAreaRect.width*100;
-    const ay=(e.touches[0].clientY-mapAreaRect.top)/mapAreaRect.height*100;
-    const[ix,iy]=areaToImgCoords(ax,ay);
-    z.points[activeVertexIndex]=[Math.max(0,Math.min(100,ix)),Math.max(0,Math.min(100,iy))];
+    const svgRect=mapSvg.getBoundingClientRect();
+    const x=Math.max(0,Math.min(100,(e.touches[0].clientX-svgRect.left)/svgRect.width*100));
+    const y=Math.max(0,Math.min(100,(e.touches[0].clientY-svgRect.top)/svgRect.height*100));
+    z.points[activeVertexIndex]=[+x.toFixed(3),+y.toFixed(3)];
     renderZones();renderVertexHandles();
   }
 },{passive:true});
@@ -2186,15 +2139,6 @@ mobHandle.addEventListener('touchend',e=>{
 });
 
 // ── INIT ──
-async function migrateZoneCoords(){
-  const{data}=await sb.from('app_config').select('*').eq('key','coords_migrated');
-  if(data&&data.length>0)return;
-  for(const z of S.zones){
-    z.points=z.points.map(p=>areaToImgCoords(p[0],p[1]));
-    await saveZoneToSupabase(z);
-  }
-  await saveConfigToSupabase('coords_migrated','true');
-}
 async function init(){
   currentUser=localStorage.getItem('gt_username')||'';
   if(!currentUser){openModal('username-modal');}
@@ -2206,7 +2150,6 @@ async function init(){
   renderSeasonBar();
   renderFSeasons();
   renderZones();
-  await migrateZoneCoords();
 }
 init();
 let swipeStartX=0,swipeStartY=0;
