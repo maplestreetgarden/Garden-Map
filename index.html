@@ -1051,7 +1051,10 @@ function applyAdmin(){
   if(selZone)renderItems();
   if(selItem)renderLogs();
 }
-document.getElementById('ab-upload').onclick=()=>document.getElementById('map-file').click();
+document.getElementById('ab-upload').onclick=()=>{
+  const inp=document.getElementById('map-file');
+  if(inp){inp.value='';inp.click();}
+};
 document.getElementById('ab-history').onclick=()=>openHistoryModal();
 document.getElementById('ab-zones').onclick=()=>toggleZoneEdit();
 document.getElementById('ab-seasons').onclick=()=>{renderSeasonsModal();openModal('seasons-modal');};
@@ -1062,15 +1065,17 @@ document.getElementById('ab-pin').onclick=()=>{
   });
 };
 const mapFileInput=document.getElementById('map-file');
-if(mapFileInput)mapFileInput.onchange=async e=>{
-  const file=e.target.files[0];if(!file)return;
-  const url=await uploadMapToSupabase(file);
-  if(!url)return;
-  S.mapUrl=url;
-  await saveConfigToSupabase('mapUrl',url);
-  showMapFromUrl(url);
-  e.target.value='';
-};
+if(mapFileInput){
+  mapFileInput.addEventListener('change',async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const url=await uploadMapToSupabase(file);
+    if(!url)return;
+    S.mapUrl=url;
+    await saveConfigToSupabase('mapUrl',url);
+    showMapFromUrl(url);
+    e.target.value='';
+  });
+}
 
 // ── PIN ──
 function showPin(title,desc,cb){
