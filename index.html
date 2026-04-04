@@ -455,6 +455,7 @@ select.finp{min-height:48px;}
     <button class="ab" id="ab-zones">Add Zones</button>
     <button class="ab" id="ab-seasons">Manage Seasons</button>
     <button class="ab d" id="ab-pin">Reset PIN</button>
+    <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
   </div>
   <div id="mobile-season-strip" style="background:var(--g900);padding:5px 12px 7px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;">
     <div id="mobile-season-scroll" style="display:flex;gap:6px;width:max-content;"></div>
@@ -1053,7 +1054,18 @@ function applyAdmin(){
 }
 document.getElementById('ab-upload').onclick=()=>{
   const inp=document.getElementById('map-file');
-  if(inp){inp.value='';inp.click();}
+  if(!inp)return;
+  inp.value='';
+  inp.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const url=await uploadMapToSupabase(file);
+    if(!url)return;
+    S.mapUrl=url;
+    await saveConfigToSupabase('mapUrl',url);
+    showMapFromUrl(url);
+    inp.value='';
+  };
+  inp.click();
 };
 document.getElementById('ab-history').onclick=()=>openHistoryModal();
 document.getElementById('ab-zones').onclick=()=>toggleZoneEdit();
@@ -1064,18 +1076,6 @@ document.getElementById('ab-pin').onclick=()=>{
     S.pin=p;saveConfigToSupabase('pin',S.pin);closeModal('pin-modal');
   });
 };
-const mapFileInput=document.getElementById('map-file');
-if(mapFileInput){
-  mapFileInput.addEventListener('change',async e=>{
-    const file=e.target.files[0];if(!file)return;
-    const url=await uploadMapToSupabase(file);
-    if(!url)return;
-    S.mapUrl=url;
-    await saveConfigToSupabase('mapUrl',url);
-    showMapFromUrl(url);
-    e.target.value='';
-  });
-}
 
 // ── PIN ──
 function showPin(title,desc,cb){
@@ -2312,6 +2312,5 @@ window.addEventListener('resize',()=>{
   <img id="pv-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;touch-action:pinch-zoom;z-index:300;">
   <div id="pv-counter" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:12px;z-index:301;"></div>
 </div>
-<input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
 </body>
 </html>
