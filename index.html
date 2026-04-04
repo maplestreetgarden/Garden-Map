@@ -884,7 +884,7 @@ async function saveConfigToSupabase(key,value){
 }
 async function uploadMapToSupabase(file){
   const ext=file.name.split('.').pop();
-  const path=`map/garden-map.${ext}`;
+  const path=`map/garden-map-${Date.now()}.${ext}`;
   const{data,error}=await sb.storage.from('garden-assets').upload(path,file,{upsert:true});
   if(error){console.error('Map upload failed',error);return null;}
   const{data:urlData}=sb.storage.from('garden-assets').getPublicUrl(path);
