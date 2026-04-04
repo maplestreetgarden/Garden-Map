@@ -1061,7 +1061,8 @@ document.getElementById('ab-pin').onclick=()=>{
     S.pin=p;saveConfigToSupabase('pin',S.pin);closeModal('pin-modal');
   });
 };
-document.getElementById('map-file').onchange=async e=>{
+const mapFileInput=document.getElementById('map-file');
+if(mapFileInput)mapFileInput.onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   const url=await uploadMapToSupabase(file);
   if(!url)return;
