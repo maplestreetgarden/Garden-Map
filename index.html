@@ -56,10 +56,11 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 #main{display:flex;flex:1;overflow:hidden;position:relative}
 
 /* MAP */
-#map-area{flex:1;position:relative;overflow:hidden;background:#c5d9b3}
+#map-area{flex:1;position:relative;overflow:hidden;background:#c5d9b3;user-select:none;-webkit-user-select:none;}
+#map-layer img,#map-layer canvas{user-select:none;-webkit-user-select:none;pointer-events:none;}
 #map-content{position:absolute;inset:0;transform-origin:center center}
 #map-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-#map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain}
+#map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none;}
 #map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 #map-svg.editing{pointer-events:all;cursor:crosshair;}
 #map-svg.move-mode{cursor:grab;pointer-events:all;}
@@ -461,7 +462,7 @@ select.finp{min-height:48px;}
   </div>
 
   <div id="main">
-    <div id="map-area">
+    <div id="map-area" style="user-select:none;" draggable="false">
       <button id="help-btn" aria-label="User guide" title="Help">?</button>
       <div id="map-content">
         <div id="map-layer">
@@ -583,12 +584,12 @@ select.finp{min-height:48px;}
             </div>
           </div>
         </div>
+        <div style="padding:6px 16px 10px;flex-shrink:0;text-align:center;">
+          <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:10px;color:var(--n300);text-decoration:none;">Send Feedback</a>
+        </div>
       </div>
     </div>
   </div>
-    <div style="padding:6px 16px 10px;flex-shrink:0;text-align:center;border-top:1px solid var(--n100);margin-top:auto;">
-      <a href="mailto:fayepolasek@icloud.com?subject=Garden%20Tracker%20Feedback" style="font-size:10px;color:var(--n300);text-decoration:none;">Send Feedback</a>
-    </div>
     </div>
 
   <div id="mob-tabbar">
@@ -921,7 +922,8 @@ async function showMapFromUrl(url){
   }else{
     const img=document.createElement('img');
     img.src=url;
-    img.style.cssText='max-width:100%;max-height:100%;display:block';
+    img.draggable=false;
+    img.style.cssText='max-width:100%;max-height:100%;display:block;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;';
     img.onerror=()=>console.error('Image load failed',url);
     document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
   }
@@ -1067,6 +1069,7 @@ document.getElementById('map-file').onchange=async e=>{
   S.mapUrl=url;
   await saveConfigToSupabase('mapUrl',url);
   showMapFromUrl(url);
+  e.target.value='';
 };
 
 // ── PIN ──
@@ -1976,6 +1979,7 @@ document.getElementById('map-area').addEventListener('wheel',e=>{
   }
 },{passive:false});
 mapArea.addEventListener('mousedown',e=>{
+  if(e.target.tagName==='IMG'||e.target.tagName==='CANVAS'){e.preventDefault();}
   if(mapPanLocked||editingZones)return;
   if(e.target.closest('#zoom-controls'))return;
   isPanning=true;panStartX=e.clientX-panX*mapZoom;panStartY=e.clientY-panY*mapZoom;
