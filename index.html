@@ -2255,6 +2255,10 @@ async function init(){
   showPanel('p-empty');
 }
 init();
+const mapAreaObserver=new ResizeObserver(()=>{
+  renderZones();
+});
+mapAreaObserver.observe(document.getElementById('map-area'));
 let swipeStartX=0,swipeStartY=0;
 const detailPanel=document.getElementById('detail-panel');
 detailPanel.addEventListener('touchstart',e=>{
