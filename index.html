@@ -1195,6 +1195,18 @@ function renderHistoryList(){
 }
 
 // ── ZONES ──
+function getSvgToImageTransform(){
+  const mapAreaRect=document.getElementById('map-area').getBoundingClientRect();
+  const img=document.getElementById('map-layer').querySelector('img')||document.getElementById('map-layer').querySelector('canvas');
+  if(!img)return null;
+  const imgRect=img.getBoundingClientRect();
+  return{
+    offsetX:(imgRect.left-mapAreaRect.left)/mapAreaRect.width*100,
+    offsetY:(imgRect.top-mapAreaRect.top)/mapAreaRect.height*100,
+    scaleX:imgRect.width/mapAreaRect.width,
+    scaleY:imgRect.height/mapAreaRect.height
+  };
+}
 const mapSvg=document.getElementById('map-svg');
 const mapContent=document.getElementById('map-content');
 
@@ -1309,7 +1321,13 @@ function renderZones(){
       return(S.logs[item.id]||[]).some(l=>logVisibleInSeason(l,item.type,S.activeSeason));
     });
     const zc=ZONE_COLORS[z.color||'gray'];
-    const ptsStr=z.points.map(p=>`${p[0]},${p[1]}`).join(' ');
+    const t=getSvgToImageTransform();
+    const ptsStr=z.points.map(p=>{
+      if(!t)return`${p[0]},${p[1]}`;
+      const ax=t.offsetX+p[0]*t.scaleX;
+      const ay=t.offsetY+p[1]*t.scaleY;
+      return`${ax.toFixed(3)},${ay.toFixed(3)}`;
+    }).join(' ');
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','zg');
     const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
@@ -1962,7 +1980,6 @@ document.getElementById('search-input').addEventListener('keydown',e=>{
 function applyTransform(){
   mapContent.style.transform=`scale(${mapZoom}) translate(${panX}px,${panY}px)`;
   mapContent.style.transformOrigin='center center';
-  // SVG stays fixed — updated via updateSvgBounds only
 }
 document.getElementById('zoom-in').onclick=()=>{mapZoom=Math.min(4,mapZoom+0.2);applyTransform();}
 document.getElementById('zoom-out').onclick=()=>{mapZoom=Math.max(0.5,mapZoom-0.2);applyTransform();}
