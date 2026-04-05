@@ -58,8 +58,8 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 /* MAP */
 #map-area{flex:1;position:relative;overflow:hidden;background:#c5d9b3;user-select:none;-webkit-user-select:none;}
 #map-layer img,#map-layer canvas{user-select:none;-webkit-user-select:none;pointer-events:none;}
-#map-content{position:absolute;inset:0;transform-origin:center center}
-#map-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#map-content{position:relative;transform-origin:center center;will-change:transform;display:flex;align-items:center;justify-content:center;}
+#map-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
 #map-layer img,#map-layer canvas{display:block;max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;pointer-events:none;}
 #map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 #map-svg.editing{pointer-events:all;cursor:crosshair;}
@@ -903,6 +903,25 @@ async function uploadPhotoToSupabase(file,prefix='photo'){
   const{data:urlData}=sb.storage.from('garden-assets').getPublicUrl(path);
   return urlData.publicUrl;
 }
+function sizeMapContent(){
+  const img=document.getElementById('map-layer').querySelector('img');
+  const canvas=document.getElementById('map-layer').querySelector('canvas');
+  const el=img||canvas;
+  if(!el)return;
+  const mc=document.getElementById('map-content');
+  const areaRect=document.getElementById('map-area').getBoundingClientRect();
+  const naturalW=img?img.naturalWidth:canvas.width;
+  const naturalH=img?img.naturalHeight:canvas.height;
+  const aspect=naturalW/naturalH;
+  const areaAspect=areaRect.width/areaRect.height;
+  if(aspect<areaAspect){
+    mc.style.width=(areaRect.height*aspect)+'px';
+    mc.style.height=areaRect.height+'px';
+  }else{
+    mc.style.width=areaRect.width+'px';
+    mc.style.height=(areaRect.width/aspect)+'px';
+  }
+}
 async function showMapFromUrl(url){
   if(!url)return;
   document.getElementById('map-empty').style.display='none';
@@ -918,16 +937,21 @@ async function showMapFromUrl(url){
       c.width=vp.width;c.height=vp.height;
       document.getElementById('map-layer').insertBefore(c,document.getElementById('map-layer').firstChild);
       await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+      sizeMapContent();
+      renderZones();
     }catch(e){console.error('PDF render failed',e);}
   }else{
     const img=document.createElement('img');
     img.src=url;
     img.draggable=false;
-    img.style.cssText='max-width:100%;max-height:100%;display:block;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;';
+    img.style.cssText='width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;object-fit:contain;';
     img.onerror=()=>console.error('Image load failed',url);
+    img.onload=()=>{
+      sizeMapContent();
+      renderZones();
+    };
     document.getElementById('map-layer').insertBefore(img,document.getElementById('map-layer').firstChild);
   }
-  renderZones();
 }
 
 // ── MODAL / PANEL HELPERS ──
@@ -2256,6 +2280,7 @@ async function init(){
 }
 init();
 const mapAreaObserver=new ResizeObserver(()=>{
+  sizeMapContent();
   renderZones();
 });
 mapAreaObserver.observe(document.getElementById('map-area'));
