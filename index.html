@@ -412,9 +412,8 @@ select.finp{min-height:48px;}
 }
 @media(max-width:767px){#p-empty-drag-hint{display:block;}}
 @media(max-width:767px){#p-empty{justify-content:flex-start;padding-top:20px;}}
-#mobile-season-strip{display:none;}
-@media(max-width:767px){#mobile-season-strip{display:block !important;}}
-@media(min-width:768px){#mobile-season-strip{display:none !important;}}
+@media(max-width:767px){#mob-season-scroll{display:flex;}#mob-season-scroll::-webkit-scrollbar{display:none;}#topbar-right{flex-shrink:0;}#search-wrap{flex-shrink:0;}}
+@media(min-width:768px){#mob-season-scroll{display:none;}}
 </style>
 </head>
 <body>
@@ -437,6 +436,7 @@ select.finp{min-height:48px;}
       <span class="title-full">Maple Street Community Garden</span><span class="title-short">MSCG</span>
     </span>
     <div id="season-scroll"></div>
+    <div id="mob-season-scroll" style="display:none;flex:1;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;align-items:center;"></div>
     <div id="topbar-right">
       <div id="search-wrap">
         <button id="search-icon-btn" aria-label="Search">
@@ -456,9 +456,6 @@ select.finp{min-height:48px;}
     <button class="ab" id="ab-seasons">Manage Seasons</button>
     <button class="ab d" id="ab-pin">Reset PIN</button>
     <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
-  </div>
-  <div id="mobile-season-strip" style="background:var(--g900);padding:5px 12px 7px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;">
-    <div id="mobile-season-scroll" style="display:flex;gap:6px;width:max-content;"></div>
   </div>
 
   <div id="main">
@@ -803,8 +800,15 @@ let editingLogId=null;
 let mapZoom=1,panX=0,panY=0,isPanning=false,panStartX=0,panStartY=0;
 let mapPanLocked=false;
 
-function pushHistory(action,zoneId,itemId){
+async function logHistory(action,zoneId,itemId){
   S.history.push({ts:Date.now(),user:currentUser||'Unknown',action,zoneId:zoneId||null,itemId:itemId||null});
+  await sb.from('history').insert({
+    action,
+    user_name:currentUser||'Unknown',
+    zone_id:zoneId||null,
+    item_id:itemId||null,
+    ts:new Date().toISOString()
+  });
 }
 
 // ── SUPABASE DATA FUNCTIONS ──
@@ -1127,8 +1131,17 @@ function renderSeasonBar(){
       container.appendChild(c);
     });
   });
-  const msc=document.getElementById('mobile-season-scroll');
-  if(msc){msc.innerHTML='';['All',...S.seasons].forEach(s=>{const c=document.createElement('span');c.className='s-chip'+(S.activeSeason===s?' act':'');c.textContent=s;c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();if(selZone)renderItems();if(selItem)renderLogs();};msc.appendChild(c);});}
+  const msc=document.getElementById('mob-season-scroll');
+  if(msc){
+    msc.innerHTML='';
+    ['All',...S.seasons].forEach(s=>{
+      const c=document.createElement('span');
+      c.className='s-chip'+(S.activeSeason===s?' act':'');
+      c.textContent=s;
+      c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();if(selZone)renderItems();if(selItem)renderLogs();};
+      msc.appendChild(c);
+    });
+  }
 }
 function renderFSeasons(){
   const el=document.getElementById('f-season-chips');if(!el)return;el.innerHTML='';
@@ -1312,13 +1325,13 @@ async function saveZone(){
   if(pendingZId){
     zone=S.zones.find(z=>z.id===pendingZId);
     if(zone){zone.name=name;zone.type=type;zone.desc=desc;zone.color=color;}
-    pushHistory(`Zone edited: ${name}`,pendingZId,null);
+    logHistory(`Zone edited: ${name}`,pendingZId,null);
   }else{
     const id='z'+Date.now();
     zone={id,name,type,desc,color,points:window._pendingPts||[]};
     S.zones.push(zone);
     S.items[id]=[];
-    pushHistory(`Zone created: ${name}`,id,null);
+    logHistory(`Zone created: ${name}`,id,null);
   }
   await saveZoneToSupabase(zone);
   closeModal('zone-modal');renderZones();
@@ -1403,7 +1416,7 @@ function deleteCurrentZone(){
 }
 async function deleteZone(id){
   const z=S.zones.find(z=>z.id===id);
-  pushHistory(`Zone deleted: ${z?.name||id}`,id,null);
+  logHistory(`Zone deleted: ${z?.name||id}`,id,null);
   S.zones=S.zones.filter(z=>z.id!==id);
   (S.items[id]||[]).forEach(item=>delete S.logs[item.id]);
   delete S.items[id];
@@ -1526,7 +1539,7 @@ async function saveItem(){
       item.condition=pCondition;
     }
     const name=item.type==='plant'?(item.crop||'Plant'):(item.name||'Object');
-    pushHistory(`Item edited: ${name}`,selZone,pItemEditId);
+    logHistory(`Item edited: ${name}`,selZone,pItemEditId);
     await saveItemToSupabase(item,selZone);
     closeModal('item-modal');openItem(pItemEditId);renderItems();
   }else{
@@ -1543,7 +1556,7 @@ async function saveItem(){
     const name=item.type==='plant'?(item.crop||'Plant'):(item.name||'Object');
     if(!S.items[selZone])S.items[selZone]=[];
     S.items[selZone].push(item);S.logs[id]=[];
-    pushHistory(`Item created: ${name}`,selZone,id);
+    logHistory(`Item created: ${name}`,selZone,id);
     await saveItemToSupabase(item,selZone);
     closeModal('item-modal');renderItems();
   }
@@ -1641,7 +1654,7 @@ async function toggleArchive(id){
   const item=(S.items[selZone]||[]).find(i=>i.id===id);if(!item)return;
   const name=item.type==='plant'?(item.crop||'Plant'):(item.name||'Object');
   item.archived=!item.archived;
-  pushHistory(`Item ${item.archived?'archived':'restored'}: ${name}`,selZone,id);
+  logHistory(`Item ${item.archived?'archived':'restored'}: ${name}`,selZone,id);
   await saveItemToSupabase(item,selZone);
   openItem(id);renderItems();
 }
@@ -1649,7 +1662,7 @@ async function deleteItem(id){
   if(!confirm('Permanently delete this item and all its logs?'))return;
   const item=(S.items[selZone]||[]).find(i=>i.id===id);
   const name=item?(item.type==='plant'?(item.crop||'Plant'):(item.name||'Object')):'Item';
-  pushHistory(`Item deleted: ${name}`,selZone,id);
+  logHistory(`Item deleted: ${name}`,selZone,id);
   S.items[selZone]=(S.items[selZone]||[]).filter(i=>i.id!==id);
   delete S.logs[id];selItem=null;
   await deleteItemFromSupabase(id);
@@ -1736,7 +1749,7 @@ async function toggleLogLock(id){
 async function deleteLog(id){
   if(!confirm('Delete this log entry?'))return;
   const log=(S.logs[selItem]||[]).find(l=>l.id===id);
-  pushHistory(`Log deleted: ${log?.title||'Log'}`,selZone,selItem);
+  logHistory(`Log deleted: ${log?.title||'Log'}`,selZone,selItem);
   S.logs[selItem]=(S.logs[selItem]||[]).filter(l=>l.id!==id);
   await deleteLogFromSupabase(id);
   renderLogs();renderItems();renderZones();
@@ -1859,7 +1872,7 @@ async function saveLog(){
       log.tags=[...pTags];
       log.photos=[...editingLogPhotos];
     }
-    pushHistory(`Log edited: ${title||'Log'}`,selZone,selItem);
+    logHistory(`Log edited: ${title||'Log'}`,selZone,selItem);
     editingLogId=null;
   }else{
     log={
@@ -1874,7 +1887,7 @@ async function saveLog(){
     };
     if(!S.logs[selItem])S.logs[selItem]=[];
     S.logs[selItem].push(log);
-    pushHistory(`Log added: ${title||'Log'}`,selZone,selItem);
+    logHistory(`Log added: ${title||'Log'}`,selZone,selItem);
   }
   await saveLogToSupabase(log,selItem);
   closeModal('log-modal');renderLogs();renderItems();renderZones();
@@ -1934,6 +1947,8 @@ function expandSearch(){
   inp.style.display='block';
   inp.focus();
   document.getElementById('search-icon-btn').style.display='none';
+  const msc=document.getElementById('mob-season-scroll');
+  if(msc)msc.style.display='none';
 }
 function collapseSearch(){
   const wrap=document.getElementById('search-wrap');
@@ -1942,6 +1957,8 @@ function collapseSearch(){
     wrap.classList.remove('expanded');
     inp.style.display='';
     document.getElementById('search-icon-btn').style.display='';
+    const msc=document.getElementById('mob-season-scroll');
+    if(msc&&window.innerWidth<=767)msc.style.display='flex';
   }
 }
 document.getElementById('search-icon-btn').addEventListener('click',expandSearch);
@@ -2236,10 +2253,6 @@ handle.addEventListener('touchend',e=>{
     sidebar.style.transform='translateY(0)';
   }else{
     sidebar.style.transform='translateY(calc(100% - 48vh))';
-  }
-  const strip=document.getElementById('mobile-season-strip');
-  if(strip&&window.innerWidth<=767){
-    strip.classList.toggle('hidden',rect.top<vh*0.4);
   }
 });
 
