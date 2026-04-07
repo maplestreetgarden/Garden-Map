@@ -412,8 +412,9 @@ select.finp{min-height:48px;}
 }
 @media(max-width:767px){#p-empty-drag-hint{display:block;}}
 @media(max-width:767px){#p-empty{justify-content:flex-start;padding-top:20px;}}
-@media(max-width:767px){#mob-season-scroll{display:flex;}#mob-season-scroll::-webkit-scrollbar{display:none;}#topbar-right{flex-shrink:0;}#search-wrap{flex-shrink:0;}}
-@media(min-width:768px){#mob-season-scroll{display:none;}}
+#mobile-season-strip{display:none;}
+@media(max-width:767px){#mobile-season-strip{display:block !important;}}
+@media(min-width:768px){#mobile-season-strip{display:none !important;}}
 </style>
 </head>
 <body>
@@ -436,7 +437,6 @@ select.finp{min-height:48px;}
       <span class="title-full">Maple Street Community Garden</span><span class="title-short">MSCG</span>
     </span>
     <div id="season-scroll"></div>
-    <div id="mob-season-scroll" style="display:none;flex:1;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;align-items:center;"></div>
     <div id="topbar-right">
       <div id="search-wrap">
         <button id="search-icon-btn" aria-label="Search">
@@ -456,6 +456,9 @@ select.finp{min-height:48px;}
     <button class="ab" id="ab-seasons">Manage Seasons</button>
     <button class="ab d" id="ab-pin">Reset PIN</button>
     <input type="file" id="map-file" accept=".pdf,image/*" style="display:none">
+  </div>
+  <div id="mobile-season-strip" style="background:var(--g900);padding:5px 12px 7px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;">
+    <div id="mobile-season-scroll" style="display:flex;gap:6px;width:max-content;"></div>
   </div>
 
   <div id="main">
@@ -1131,17 +1134,8 @@ function renderSeasonBar(){
       container.appendChild(c);
     });
   });
-  const msc=document.getElementById('mob-season-scroll');
-  if(msc){
-    msc.innerHTML='';
-    ['All',...S.seasons].forEach(s=>{
-      const c=document.createElement('span');
-      c.className='s-chip'+(S.activeSeason===s?' act':'');
-      c.textContent=s;
-      c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();if(selZone)renderItems();if(selItem)renderLogs();};
-      msc.appendChild(c);
-    });
-  }
+  const msc=document.getElementById('mobile-season-scroll');
+  if(msc){msc.innerHTML='';['All',...S.seasons].forEach(s=>{const c=document.createElement('span');c.className='s-chip'+(S.activeSeason===s?' act':'');c.textContent=s;c.onclick=()=>{S.activeSeason=s;saveConfigToSupabase('activeSeason',s);renderSeasonBar();if(selZone)renderItems();if(selItem)renderLogs();};msc.appendChild(c);});}
 }
 function renderFSeasons(){
   const el=document.getElementById('f-season-chips');if(!el)return;el.innerHTML='';
@@ -1947,8 +1941,6 @@ function expandSearch(){
   inp.style.display='block';
   inp.focus();
   document.getElementById('search-icon-btn').style.display='none';
-  const msc=document.getElementById('mob-season-scroll');
-  if(msc)msc.style.display='none';
 }
 function collapseSearch(){
   const wrap=document.getElementById('search-wrap');
@@ -1957,8 +1949,6 @@ function collapseSearch(){
     wrap.classList.remove('expanded');
     inp.style.display='';
     document.getElementById('search-icon-btn').style.display='';
-    const msc=document.getElementById('mob-season-scroll');
-    if(msc&&window.innerWidth<=767)msc.style.display='flex';
   }
 }
 document.getElementById('search-icon-btn').addEventListener('click',expandSearch);
@@ -2233,7 +2223,9 @@ handle.addEventListener('touchmove',e=>{
   const dy=e.touches[0].clientY-sheetStartY;
   const vh=window.innerHeight;
   const newTop=sheetStartT+dy;
-  const clampedTop=Math.max(vh*0.1,Math.min(vh*0.52,newTop));
+  const minTop=vh*0.1;
+  const maxTop=vh*0.85;
+  const clampedTop=Math.max(minTop,Math.min(maxTop,newTop));
   const translateY=clampedTop-(vh-sidebar.offsetHeight);
   if(!rafPending){
     rafPending=true;
